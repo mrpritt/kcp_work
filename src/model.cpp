@@ -19,10 +19,14 @@ void Model::build(const KnapsackData& data) {
     for (int i = 0; i < data.n; ++i) {
         expr += data.w[i] * x_[i];
     }
-    model_->add(expr <= data.W);
+    for (int i = 0; i < data.n; ++i) {
+        for (int j = i + 1; j < data.n; ++j) {
+            model_->add(x_[i] + x_[j] <= 1);
+        }
+    }
 
     // Objective
-    expr.clear();
+    expr.clear(); 
     for (int i = 0; i < data.n; ++i) {
         expr += data.p[i] * x_[i];
     }
