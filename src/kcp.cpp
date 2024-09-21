@@ -12,7 +12,6 @@
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 #include "model.hpp"
-
 using namespace std;
 
 struct KnapsackData {
@@ -23,6 +22,10 @@ struct KnapsackData {
     vector<int> w;
     vector<pair<int, int>> pairs;
 };
+
+#include "kcp.hpp"
+
+using namespace std;
 
 KnapsackData read_knapcak_data(const string& filename) {
     KnapsackData data;
