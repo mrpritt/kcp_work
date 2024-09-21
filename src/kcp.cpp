@@ -71,6 +71,7 @@ int main(int argc, char** argv) {
       model.build(data);
       model.solve();
     } catch (IloCplex::Exception e) {
+        cerr << "CPLEX exception caught: " << e.getMessage() << endl;
     }
 
     fmt::print("Objective function value: {}\n", model.getObjectiveValue());
