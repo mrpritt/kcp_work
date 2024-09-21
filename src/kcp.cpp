@@ -4,7 +4,14 @@
 #include <sstream>
 
 #define FMT_HEADER_ONLY
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <sstream>
+
+#define FMT_HEADER_ONLY
 #include "fmt/format.h"
+#include "kcp.hpp"
 
 using namespace std;
 
@@ -66,7 +73,11 @@ int main(int argc, char** argv) {
     string filename = argv[1];
     KnapsackData data = read_knapcak_data(filename);
 
-    fmt::print("Number of items: {}\n", data.n);
+    Model model;
+    model.build(data);
+    model.solve();
+
+    fmt::print("Objective function value: {}\n", model.getObjectiveValue());
 
     return 0;
 }
