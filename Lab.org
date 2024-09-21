@@ -1,0 +1,17 @@
+#+Title: Lab book
+#+Author: Marcus Ritt
+#+Date: <2024-09-21 Sat>
+#+Revision: $Rev$
+#+LaTeX_CLASS_OPTIONS: [koma,DIV=15,10pt,a4]
+#+LaTeX_HEADER: \usepackage[margin=0.5in]{geometry}
+
+* <2024-09-21 Sat>
+
+  1I1: 2567 optimal.
+
+# Local Variables:
+# auto-fill-function: do-auto-fill
+# ispell-local-dictionary: "english"
+# fill-column: 20000
+# eval: (visual-line-mode t)
+# End:
