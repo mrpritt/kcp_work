@@ -2,7 +2,9 @@
 #include <fstream>
 #include <vector>
 #include <sstream>
-#include <fmt/format.h>
+
+#define FMT_HEADER_ONLY
+#include "fmt/format.h"
 
 using namespace std;
 
