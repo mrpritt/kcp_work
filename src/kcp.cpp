@@ -3,7 +3,6 @@
 #include <vector>
 #include <sstream>
 
-#define FMT_HEADER_ONLY
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -13,15 +12,6 @@
 #include "fmt/format.h"
 #include "model.hpp"
 using namespace std;
-
-struct KnapsackData {
-    int n;
-    int I;
-    int W;
-    vector<int> p;
-    vector<int> w;
-    vector<pair<int, int>> pairs;
-};
 
 #include "kcp.hpp"
 
@@ -76,9 +66,12 @@ int main(int argc, char** argv) {
     string filename = argv[1];
     KnapsackData data = read_knapcak_data(filename);
 
-    Model model;
-    model.build(data);
-    model.solve();
+    try {
+      Model model;
+      model.build(data);
+      model.solve();
+    } catch (IloCplex::Exception e) {
+    }
 
     fmt::print("Objective function value: {}\n", model.getObjectiveValue());
 
