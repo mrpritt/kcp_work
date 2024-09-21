@@ -2,6 +2,7 @@
 #include <fstream>
 #include <vector>
 #include <sstream>
+#include <fmt/format.h>
 
 using namespace std;
 
@@ -53,7 +54,17 @@ KnapsackData read_knapcak_data(const string& filename) {
     return data;
 }
 
-int main() {
-    cout << "Hello from KCP\n";
+int main(int argc, char** argv) {
+    if (argc < 2) {
+        cerr << "Error: filename is required\n";
+        cerr << "Usage: kcp <filename>\n";
+        return 1;
+    }
+
+    string filename = argv[1];
+    KnapsackData data = read_knapcak_data(filename);
+
+    fmt::print("Number of items: {}\n", data.n);
+
     return 0;
 }
