@@ -19,36 +19,28 @@ using namespace std;
 
 KnapsackData read_knapcak_data(const string& filename) {
     KnapsackData data;
-    ifstream file(filename);
+    ifstream in(filename);
     string line;
 
-    if (file.is_open()) {
-        getline(file, line);
-        stringstream ss(line);
-        ss >> data.n >> data.I >> data.W;
+    if (in.is_open()) {
+        in >> data.n >> data.I >> data.W;
 
-        getline(file, line);
-        ss = stringstream(line);
         data.p.resize(data.n);
         for (int i = 0; i < data.n; ++i) {
-            ss >> data.p[i];
+	  in >> data.p[i];
         }
 
-        getline(file, line);
-        ss = stringstream(line);
         data.w.resize(data.n);
         for (int i = 0; i < data.n; ++i) {
-            ss >> data.w[i];
+	  in >> data.w[i];
         }
 
         data.pairs.resize(data.I);
         for (int i = 0; i < data.I; ++i) {
-            getline(file, line);
-            ss = stringstream(line);
-            ss >> data.pairs[i].first >> data.pairs[i].second;
+	  in >> data.pairs[i].first >> data.pairs[i].second;
         }
 
-        file.close();
+        in.close();
     } else {
         cerr << "Unable to open file: " << filename << endl;
     }
@@ -70,11 +62,10 @@ int main(int argc, char** argv) {
       Model model;
       model.build(data);
       model.solve();
+      fmt::print("Objective function value: {}\n", model.getObjectiveValue());
     } catch (IloCplex::Exception e) {
         cerr << "CPLEX exception caught: " << e.getMessage() << endl;
     }
-
-    fmt::print("Objective function value: {}\n", model.getObjectiveValue());
 
     return 0;
 }

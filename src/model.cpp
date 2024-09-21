@@ -21,7 +21,7 @@ void Model::build(const KnapsackData& data) {
     }
     model_->add(expr <= data.W);
     for (const auto& pair : data.pairs) {
-        model_->add(x_[pair.first] + x_[pair.second] <= 1);
+      //        model_->add(x_[pair.first-1] + x_[pair.second-1] <= 1);
     }
 
     // Objective
@@ -35,7 +35,7 @@ void Model::build(const KnapsackData& data) {
 bool Model::solve() {
     // Create the CPLEX solver
     IloCplex cplex(*model_);
-
+    cplex.exportModel("x.lp");
     // Solve the problem
     return cplex.solve();
 }

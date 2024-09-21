@@ -1,5 +1,8 @@
+#include <iostream>
+#include <fstream>
 #include <memory>
 #include <vector>
+#include <sstream>
 
 #include "kcp.hpp"
 
