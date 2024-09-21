@@ -14,10 +14,10 @@ class Model {
 private:
     std::unique_ptr<IloEnv> env_;
     std::unique_ptr<IloModel> model_;
-    std::vector<IloBoolVar> x_;
+    IloNumVarArray x_;
 
 public:
     void build(const KnapsackData& data);
-    bool solve();
-    double getObjectiveValue() const;
+    std::pair<std::vector<bool>, IloAlgorithm::Status> solve();
+    std::vector<bool> getSolution(IloCplex solver);
 };

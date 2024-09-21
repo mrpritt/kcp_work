@@ -2,18 +2,13 @@
 #include <fstream>
 #include <vector>
 #include <sstream>
-
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <sstream>
+using namespace std;
 
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
-#include "model.hpp"
-using namespace std;
 
 #include "kcp.hpp"
+#include "model.hpp"
 
 using namespace std;
 
@@ -26,19 +21,16 @@ KnapsackData read_knapcak_data(const string& filename) {
         in >> data.n >> data.I >> data.W;
 
         data.p.resize(data.n);
-        for (int i = 0; i < data.n; ++i) {
+        for (int i = 0; i < data.n; ++i)
 	  in >> data.p[i];
-        }
 
         data.w.resize(data.n);
-        for (int i = 0; i < data.n; ++i) {
+        for (int i = 0; i < data.n; ++i)
 	  in >> data.w[i];
-        }
 
         data.pairs.resize(data.I);
-        for (int i = 0; i < data.I; ++i) {
+        for (int i = 0; i < data.I; ++i)
 	  in >> data.pairs[i].first >> data.pairs[i].second;
-        }
 
         in.close();
     } else {
@@ -61,9 +53,8 @@ int main(int argc, char** argv) {
     try {
       Model model;
       model.build(data);
-      model.solve();
-      fmt::print("Objective function value: {}\n", model.getObjectiveValue());
-    } catch (IloCplex::Exception e) {
+      auto [S,status] = model.solve();
+    } catch (IloCplex::Exception& e) {
         cerr << "CPLEX exception caught: " << e.getMessage() << endl;
     }
 

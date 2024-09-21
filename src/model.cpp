@@ -2,46 +2,58 @@
 
 #include <ilcplex/ilocplex.h>
 
+#define FMT_HEADER_ONLY
+#include "fmt/format.h"
+
 void Model::build(const KnapsackData& data) {
     // Create the CPLEX environment
     env_ = std::make_unique<IloEnv>();
     model_ = std::make_unique<IloModel>(*env_);
 
     // Variables
-    x_.resize(data.n);
-    for (int i = 0; i < data.n; ++i) {
-        x_[i] = IloBoolVar(*env_);
-        model_->add(x_[i]);
-    }
+    x_ = IloNumVarArray(*env_, data.n, 0.0, 1.0, ILOINT);
 
     // Constraints
     IloExpr expr(*env_);
-    for (int i = 0; i < data.n; ++i) {
+    for (int i = 0; i < data.n; ++i)
         expr += data.w[i] * x_[i];
-    }
     model_->add(expr <= data.W);
+
     for (const auto& pair : data.pairs) {
-      //        model_->add(x_[pair.first-1] + x_[pair.second-1] <= 1);
+      model_->add(x_[pair.first-1] + x_[pair.second-1] <= 1);
     }
 
     // Objective
-    expr.clear(); 
-    for (int i = 0; i < data.n; ++i) {
+    expr.clear();
+    for (int i = 0; i < data.n; ++i)
         expr += data.p[i] * x_[i];
-    }
     model_->add(IloMaximize(*env_, expr));
 }
 
-bool Model::solve() {
-    // Create the CPLEX solver
-    IloCplex cplex(*model_);
-    cplex.exportModel("x.lp");
-    // Solve the problem
-    return cplex.solve();
+vector<bool> Model::getSolution(IloCplex solver) {
+  const unsigned n = x_.getSize();
+
+  IloNumArray xvalue(*env_);
+  solver.getValues(x_, xvalue);
+  vector<bool> S(n, false);
+  for (auto i = 0u; i < n; ++i)
+    S[i] = (xvalue[i] > 0.5);
+  return S;
 }
 
-double Model::getObjectiveValue() const {
+pair<vector<bool>, IloAlgorithm::Status> Model::solve() {
     // Create the CPLEX solver
-    IloCplex cplex(*model_);
-    return cplex.getObjValue();
+    IloCplex solver(*model_);
+    solver.exportModel("x.lp");
+    // Solve the problem
+    solver.solve();
+
+    vector<bool> S;
+    IloAlgorithm::Status status = solver.getStatus();
+    if (status == IloAlgorithm::Feasible || status == IloAlgorithm::Optimal)
+      S = getSolution(solver);
+    else
+      fmt::print("No feasible solution.\n");
+    solver.end();
+    return {S, status};
 }
