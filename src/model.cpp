@@ -1,32 +1,44 @@
 #include "model.hpp"
 
-#include <ortools/linear_solver/linear_solver.h>
+#include <ilcplex/ilocplex.h>
 
 void Model::build(const KnapsackData& data) {
-    // Create the linear solver with the SCIP backend.
-    solver_ = operations_research::MPSolver::CreateSolver("SCIP");
-    if (!solver_) {
-        std::cerr << "SCIP solver unavailable." << std::endl;
-        return;
-    }
+    // Create the CPLEX environment
+    env_ = std::make_unique<IloEnv>();
+    model_ = std::make_unique<IloModel>(*env_);
 
     // Variables
+    x_.resize(data.n);
     for (int i = 0; i < data.n; ++i) {
-        x_.push_back(solver_->MakeIntVar(0.0, 1.0, "x_" + std::to_string(i)));
+        x_[i] = IloBoolVar(*env_);
+        model_->add(x_[i]);
     }
 
     // Constraints
-    solver_->Add(solver_->ScalProd(data.w, x_) <= data.W);
+    IloExpr expr(*env_);
+    for (int i = 0; i < data.n; ++i) {
+        expr += data.w[i] * x_[i];
+    }
+    model_->add(expr <= data.W);
 
     // Objective
-    solver_->Maximize(solver_->ScalProd(data.p, x_));
+    expr.clear();
+    for (int i = 0; i < data.n; ++i) {
+        expr += data.p[i] * x_[i];
+    }
+    model_->add(IloMaximize(*env_, expr));
 }
 
-operations_research::MPSolver::ResultStatus Model::solve() {
+bool Model::solve() {
+    // Create the CPLEX solver
+    IloCplex cplex(*model_);
+
     // Solve the problem
-    return solver_->Solve();
+    return cplex.solve();
 }
 
 double Model::getObjectiveValue() const {
-    return solver_->Objective().Value();
+    // Create the CPLEX solver
+    IloCplex cplex(*model_);
+    return cplex.getObjValue();
 }
