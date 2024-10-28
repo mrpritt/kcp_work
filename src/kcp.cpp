@@ -2,6 +2,7 @@
 #include <fstream>
 #include <vector>
 #include <sstream>
+#include <numeric>
 using namespace std;
 
 #define FMT_HEADER_ONLY
@@ -54,6 +55,13 @@ int main(int argc, char** argv) {
       Model model;
       model.build(data);
       auto [S,status] = model.solve();
+
+      vector<int> π(data.n, 0);
+      iota(π.begin(), π.end(), 0);
+      sort(π.begin(), π.end(), [&](int i, int j) { return data.p[i] * data.w[j] > data.p[j] * data.w[i]; });
+      for(auto i=0u; i != S.size(); ++i)
+	fmt::print("{}", S[π[i]] ? "⬛" : ".");
+      fmt::print("\n");
     } catch (IloCplex::Exception& e) {
         cerr << "CPLEX exception caught: " << e.getMessage() << endl;
     }
