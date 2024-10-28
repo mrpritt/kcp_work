@@ -5,6 +5,10 @@
 #+LaTeX_CLASS_OPTIONS: [koma,DIV=15,10pt,a4]
 #+LaTeX_HEADER: \usepackage[margin=0.5in]{geometry}
 
+* <2024-10-28 seg>
+
+  Coupled to aider running Qwen2.5-Coder-1.5B-Instruct.
+
 * <2024-09-21 Sat>
 
   1I1: 2567 optimal.
