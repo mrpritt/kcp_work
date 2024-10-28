@@ -13,7 +13,7 @@ using namespace std;
 
 using namespace std;
 
-KnapsackData read_knapcak_data(const string& filename) {
+KnapsackData read_knapsack_data(const string& filename) {
     KnapsackData data;
     ifstream in(filename);
     string line;
@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
     }
 
     string filename = argv[1];
-    KnapsackData data = read_knapcak_data(filename);
+    KnapsackData data = read_knapsack_data(filename);
 
     try {
       Model model;
