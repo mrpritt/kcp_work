@@ -51,10 +51,10 @@ else ()
 endif ()
 
 ######## find all the source files.
-file(GLOB HEADER_FILES include/*.h)
+file(GLOB HEADER_FILES include/*.hpp)
 file(GLOB SOURCE_FILES src/*.cpp)
 
 ######## Set executable file name, and add the source files for it.
-add_executable(${MY_PROJECT_NAME} src/kcp.cpp src/model.cpp)
+add_executable(${MY_PROJECT_NAME} src/kcp.cpp src/model.cpp src/kpc_dp.cpp)
 ######## Add Dependency Library
 target_link_libraries(${MY_PROJECT_NAME} cplex-library cplex-concert ilocplex cplex-cp)

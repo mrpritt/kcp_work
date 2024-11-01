@@ -10,8 +10,7 @@ using namespace std;
 
 #include "kcp.hpp"
 #include "model.hpp"
-
-using namespace std;
+#include "kpc_dp.hpp"
 
 KnapsackData read_knapsack_data(const string& filename) {
     KnapsackData data;
@@ -41,16 +40,7 @@ KnapsackData read_knapsack_data(const string& filename) {
     return data;
 }
 
-int main(int argc, char** argv) {
-  if (argc < 2) {
-    cerr << "Error: filename is required\n";
-    cerr << "Usage: kcp <filename>\n";
-    return 1;
-  }
-
-  string filename = argv[1];
-  KnapsackData data = read_knapsack_data(filename);
-
+void solver_cmp(KnapsackData data) {
   try {
     KPModel kp_model;
     KPCModel kpc_model;
@@ -109,6 +99,27 @@ int main(int argc, char** argv) {
   } catch (IloCplex::Exception& e) {
     cerr << "CPLEX exception caught: " << e.getMessage() << endl;
   }
+}
+
+int main(int argc, char** argv) {
+  if (argc < 2) {
+    cerr << "Error: filename is required\n";
+    cerr << "Usage: kcp <filename>\n";
+    return 1;
+  }
+
+  string filename = argv[1];
+  KnapsackData data = read_knapsack_data(filename);
+
+  // Run solver
+  solver_cmp(data);
+
+  // Run DP Algorithm
+  // TODO: knapsackWithConflicts() is broken, fix it!
+  //
+  // auto [dp_V, dp_S] = knapsackWithConflicts(data);
+  // cout << dp_V << endl;
+
 
   return 0;
 }
