@@ -11,6 +11,7 @@ using namespace std;
 #include "kcp.hpp"
 #include "model.hpp"
 #include "kpc_dp.hpp"
+#include "kpc_dp2.hpp"
 
 KnapsackData read_knapsack_data(const string& filename) {
     KnapsackData data;
@@ -117,9 +118,11 @@ int main(int argc, char** argv) {
   // Run DP Algorithm
   // TODO: knapsackWithConflicts() is broken, fix it!
   //
-  // auto [dp_V, dp_S] = knapsackWithConflicts(data);
-  // cout << dp_V << endl;
+  auto [dp_V, dp_S] = knapsackWithConflicts(data);
+  cout << dp_V << endl;
 
+  auto [kpcdp_V, kpcdp_S] = KPC_DP(data);
+  cout << kpcdp_V << endl;
 
   return 0;
 }

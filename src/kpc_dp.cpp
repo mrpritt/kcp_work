@@ -47,14 +47,14 @@ pair<int, vector<bool>> knapsackWithConflicts(KnapsackData& data) {
             int value = entry.second;
 
             // Case 1: Do not include item i
-            currentDP[{subset, weight}] = max(currentDP[{subset, weight}], value);
+            currentDP[{subset, weight}] = value;
 
             // Check if we can include item i
             if (weights[i] <= weight) {
                 // Determine if we can include item i
                 bool canInclude = true;
                 for (int j : conflicts[i]) { // Check conflicts with item i
-                    if (subset[j - 1]) { // If item j is included in subset
+                    if (subset[j]) { // If item j is included in subset
                         canInclude = false;
                         break;
                     }
@@ -68,7 +68,7 @@ pair<int, vector<bool>> knapsackWithConflicts(KnapsackData& data) {
                     int newValue = values[i] + value;
 
                     // Update current DP if this combination is better
-                    currentDP[{newSubset, newWeight}] = max(currentDP[{newSubset, newWeight}], newValue);
+                    currentDP[{newSubset, newWeight}] = newValue;
                 }
             }
         }
