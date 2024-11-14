@@ -3,4 +3,4 @@
 
 #include "kcp.hpp"
 
-std::pair<int, std::vector<bool>> KPC_DP(KnapsackData& data);
+std::pair<int, std::vector<bool>> KPC_DP(KnapsackData& data, int J);
