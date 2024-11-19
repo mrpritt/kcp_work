@@ -4,7 +4,7 @@
 #include <vector>
 #include <sstream>
 
-#include "kcp.hpp"
+#include "kpc.hpp"
 
 #include <ilcplex/ilocplex.h>
 

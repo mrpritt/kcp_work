@@ -8,7 +8,7 @@ using namespace std;
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
-#include "kcp.hpp"
+#include "kpc.hpp"
 #include "model.hpp"
 #include "kpc_dp.hpp"
 #include "kpc_dp2.hpp"
@@ -106,7 +106,7 @@ void solver_cmp(KnapsackData data) {
 int main(int argc, char** argv) {
   if (argc < 2) {
     cerr << "Error: filename is required\n";
-    cerr << "Usage: kcp <filename>\n";
+    cerr << "Usage: kpc <filename>\n";
     return 1;
   }
 
@@ -122,13 +122,17 @@ int main(int argc, char** argv) {
   auto [dp_V, dp_S] = knapsackWithConflicts(data);
   cout << dp_V << endl;
 
+  // heuristic linear arrangement to minimize conflict distances
   auto conflicts = pairs2vv(data.n, data.pairs);
   auto [linarr, J] = linear_arrangement(conflicts);
   auto arrd_data = arrange_data(linarr, data);
-  auto [kpcdp_V, kpcdp_S] = KPC_DP(arrd_data, J);
-  auto inv_linarr = inv_arr(linarr);
-  kpcdp_S = arrange_arr(kpcdp_S, inv_linarr);
-  cout << kpcdp_V << endl;
+
+  for(auto j = 1; j != J + 1; ++j) {
+    auto [kpcdp_V, kpcdp_S, nup, tim] = KPC_DP(arrd_data, j);
+    auto inv_linarr = inv_arr(linarr);
+    kpcdp_S = arrange_arr(kpcdp_S, inv_linarr);
+    fmt::print("{}\t{}\t{}\t{}\n", j, kpcdp_V, nup, tim);
+  }
 
   return 0;
 }

@@ -7,7 +7,8 @@
 #include <boost/functional/hash.hpp>
 
 #include "kpc_dp.hpp"
-#include "kcp.hpp"
+#include "kpc.hpp"
+#include "logging.hpp"
 
 using namespace std;
 
@@ -22,7 +23,11 @@ struct PairHash {
     }
 };
 
+int nup;
+
 pair<int, vector<bool>> knapsackWithConflicts(KnapsackData& data) {
+  nup = 0; timer t;
+  
     int n = data.n;
     int W = data.W;
     const vector<int>& weights = data.w;
@@ -47,7 +52,7 @@ pair<int, vector<bool>> knapsackWithConflicts(KnapsackData& data) {
             int value = entry.second;
 
             // Case 1: Do not include item i
-            currentDP[{subset, weight}] = value;
+            currentDP[{subset, weight}] = value; nup++;
 
             // Check if we can include item i
             if (weights[i] <= weight) {
@@ -68,7 +73,7 @@ pair<int, vector<bool>> knapsackWithConflicts(KnapsackData& data) {
                     int newValue = values[i] + value;
 
                     // Update current DP if this combination is better
-                    currentDP[{newSubset, newWeight}] = newValue;
+                    currentDP[{newSubset, newWeight}] = newValue; nup++;
                 }
             }
         }
@@ -89,6 +94,8 @@ pair<int, vector<bool>> knapsackWithConflicts(KnapsackData& data) {
             }
         }
     }
+
+    fmt::print("Full DP, states {}, value {}, time {}\n", nup, maxValue, t.elapsed());
 
     return {maxValue, bestSubset};
 }

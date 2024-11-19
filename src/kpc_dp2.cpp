@@ -8,8 +8,9 @@
 #include <boost/functional/hash.hpp>
 
 #include "kpc_dp2.hpp"
-#include "kcp.hpp"
+#include "kpc.hpp"
 #include "utils.hpp"
+#include "timer.hpp"
 
 using namespace std;
 
@@ -24,10 +25,14 @@ struct PairHash {
     }
 };
 
-pair<int, vector<bool>> KPC_DP(KnapsackData& data, int J) {
+static int nup;
+
+tuple<int, vector<bool>, unsigned, double> KPC_DP(KnapsackData& data, int J) {
     // Unpack KnapsackData
     int n = data.n;
     int W = data.W;
+    nup = 0;
+    timer t;
     const vector<int>& weights = data.w;
     const vector<int>& values = data.p;
     auto conflicts = pairs2vv(n, data.pairs);
@@ -49,7 +54,7 @@ pair<int, vector<bool>> KPC_DP(KnapsackData& data, int J) {
             newSubset[i%J] = false;
 
             // Case 1: Do not include item i
-            currentDP[{newSubset, weight}] = value;
+            currentDP[{newSubset, weight}] = value; nup++;
 
             // Check if we can include item i
             if (weights[i] <= weight) {
@@ -69,7 +74,7 @@ pair<int, vector<bool>> KPC_DP(KnapsackData& data, int J) {
                     newSubset[i%J] = true; // Include item i in the subset
 
                     // Update current DP if this combination is better
-                    currentDP[{newSubset, newWeight}] = newValue;
+                    currentDP[{newSubset, newWeight}] = newValue; nup++;
                 }
             }
         }
@@ -106,6 +111,6 @@ pair<int, vector<bool>> KPC_DP(KnapsackData& data, int J) {
     // Improve solution
 
 
-    return {maxValue, vector<bool>(n)};
+    return {maxValue, vector<bool>(n), nup, t.elapsed()};
 }
 

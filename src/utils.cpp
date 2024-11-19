@@ -3,13 +3,14 @@
 #include <numeric>
 #include <algorithm>
 
-#include "kcp.hpp"
+#include "kpc.hpp"
+#include "logging.hpp"
 
 using namespace std;
 
 vector<int> inv_arr(const vector<int>& arr) {
   vector<int> new_arr = arr;
-  for (int i = 0; i < arr.size(); ++i)
+  for (unsigned i = 0u; i < arr.size(); ++i)
     new_arr[arr[i]] = i;
   return new_arr;
 }
@@ -50,6 +51,7 @@ pair<vector<int>, int> linear_arrangement(const vector<vector<int>>& conflicts) 
             max_d = (max_d < diff)? diff : max_d;
         }
     }
+    fmt::print("Maximum window size: {}\n", max_d);
     return {arr, max_d};
 }
 

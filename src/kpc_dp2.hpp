@@ -1,6 +1,6 @@
 #include <vector>
 #include <utility>
 
-#include "kcp.hpp"
+#include "kpc.hpp"
 
-std::pair<int, std::vector<bool>> KPC_DP(KnapsackData& data, int J);
+std::tuple<int, std::vector<bool>, unsigned, double> KPC_DP(KnapsackData& data, int J);
