@@ -2,10 +2,16 @@
 #include <vector>
 #include <numeric>
 #include <algorithm>
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/cuthill_mckee_ordering.hpp>
 
 #include "kpc.hpp"
-#include "logging.hpp"
 
+#define FMT_HEADER_ONLY
+#include "fmt/format.h"
+
+
+using namespace boost;
 using namespace std;
 
 vector<int> inv_arr(const vector<int>& arr) {
@@ -17,7 +23,7 @@ vector<int> inv_arr(const vector<int>& arr) {
 
 template <class T>
 vector<T> arrange_arr(const vector<T>& arr, const vector<int>& idx) {
-  vector<T> arrd = arr;
+  vector<T> arrd(arr.size());
   std::transform(idx.begin(), idx.end(), arrd.begin(),
                  [&arr](int i) { return arr[i]; });
   return arrd;
@@ -42,17 +48,32 @@ vector<vector<int>> pairs2vv(int n, const vector<pair<int, int>>& pairs) {
 }
 
 pair<vector<int>, int> linear_arrangement(const vector<vector<int>>& conflicts) {
-    vector<int> arr(conflicts.size(), 0);
-    iota(arr.begin(), arr.end(), 0);
-    int max_d = 0;
-    for (int i : arr) {
-        for (int j : conflicts[i]) {
-            int diff = abs(i - j);
-            max_d = (max_d < diff)? diff : max_d;
+    // Define the Boost Graph
+    using Graph = adjacency_list<vecS, vecS, undirectedS>;
+    Graph g(conflicts.size());
+
+    // Build the graph from the conflicts adjacency list
+    for (unsigned int u = 0; u < conflicts.size(); ++u) {
+        for (int v : conflicts[u]) {
+            add_edge(u, v, g);
         }
     }
-    fmt::print("Maximum window size: {}\n", max_d);
-    return {arr, max_d};
+
+    // Compute the Cuthill-McKee ordering
+    vector<int> ordering(num_vertices(g));
+    cuthill_mckee_ordering(g, ordering.rbegin()); // Use reverse iterator for RCM ordering
+
+    // Compute the maximum bandwidth (max_d)
+    int max_d = 0;
+    for (unsigned i = 0; i < ordering.size(); ++i) {
+        for (int j : conflicts[ordering[i]]) {
+            int diff = abs((find(ordering.begin(), ordering.end(), j) - ordering.begin()) - i);
+            max_d = max(max_d, diff);
+        }
+    }
+
+    fmt::print("Cuthill-McKee window size: {}\n", max_d);
+    return {ordering, max_d};
 }
 
 KnapsackData arrange_data(const vector<int>& idx, const KnapsackData& data) {
@@ -62,11 +83,8 @@ KnapsackData arrange_data(const vector<int>& idx, const KnapsackData& data) {
   ndata.W = data.W;
   ndata.p = arrange_arr(data.p, idx);
   ndata.w = arrange_arr(data.w, idx);
-  vector<pair<int, int>> npairs = data.pairs;
-  for (auto pair : ndata.pairs) {
-    pair.first = idx[pair.first];
-    pair.second = idx[pair.second];
+  for (auto p : data.pairs) {
+    ndata.pairs.push_back({idx[p.first - 1] + 1, idx[p.second - 1] + 1});
   }
-  ndata.pairs = npairs;
   return ndata;
 }

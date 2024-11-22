@@ -8,7 +8,7 @@
 
 #include "kpc_dp.hpp"
 #include "kpc.hpp"
-#include "logging.hpp"
+#include "utils.hpp"
 
 using namespace std;
 
@@ -26,17 +26,13 @@ struct PairHash {
 int nup;
 
 pair<int, vector<bool>> knapsackWithConflicts(KnapsackData& data) {
-  nup = 0; timer t;
+  nup = 0;
   
     int n = data.n;
     int W = data.W;
     const vector<int>& weights = data.w;
     const vector<int>& values = data.p;
-    vector<vector<int>> conflicts(data.I);
-    for (auto pair : data.pairs) {
-        conflicts[pair.first - 1].push_back(pair.second - 1);
-        conflicts[pair.second - 1].push_back(pair.first - 1);
-    }
+    auto conflicts = pairs2vv(n, data.pairs);
 
     // Initialize the previous DP map
     unordered_map<pair<vector<bool>, int>, int, PairHash> previousDP;
@@ -87,15 +83,14 @@ pair<int, vector<bool>> knapsackWithConflicts(KnapsackData& data) {
     vector<bool> bestSubset(n, false); // Track best subset
     for (const auto& entry : previousDP) {
         auto [subset, weight] = entry.first;
-        if (weight <= W) {
-            if (entry.second > maxValue) {
-                maxValue = entry.second;
-                bestSubset = subset; // Set bestSubset to the corresponding one
-            }
+        auto value = entry.second;
+        if (value > maxValue) {
+            maxValue = value;
+            bestSubset = subset; // Set bestSubset to the corresponding one
         }
     }
 
-    fmt::print("Full DP, states {}, value {}, time {}\n", nup, maxValue, t.elapsed());
+    // fmt::print("Full DP, states {}, value {}, time\n", nup, maxValue);
 
     return {maxValue, bestSubset};
 }

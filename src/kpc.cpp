@@ -113,20 +113,28 @@ int main(int argc, char** argv) {
   string filename = argv[1];
   KnapsackData data = read_knapsack_data(filename);
 
-  // Run solver
-  solver_cmp(data);
-
-  // Run DP Algorithm
-  // TODO: knapsackWithConflicts() is broken, fix it!
-
-  auto [dp_V, dp_S] = knapsackWithConflicts(data);
-  cout << dp_V << endl;
-
   // heuristic linear arrangement to minimize conflict distances
   auto conflicts = pairs2vv(data.n, data.pairs);
   auto [linarr, J] = linear_arrangement(conflicts);
+  cout << "Linear arrangement:" << endl;
+  for (int i : linarr)
+       cout << i << " ";
+  cout << "\n" << endl;
   auto arrd_data = arrange_data(linarr, data);
 
+  // BUG: linear_arrangement is resulting in two different instances. why?
+
+  // Run solver
+  solver_cmp(data);
+  solver_cmp(arrd_data);
+
+  // Run DP Algorithm
+  auto [dp_V, dp_S] = knapsackWithConflicts(arrd_data);
+  cout << "KPC_DParrd: " << dp_V << endl;
+  auto [dp_V2, dp_S2] = knapsackWithConflicts(data);
+  cout << "KPC_DP: " << dp_V2 << endl;
+
+  // DP with sliding window
   for(auto j = 1; j != J + 1; ++j) {
     auto [kpcdp_V, kpcdp_S, nup, tim] = KPC_DP(arrd_data, j);
     auto inv_linarr = inv_arr(linarr);
