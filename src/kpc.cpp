@@ -122,11 +122,8 @@ int main(int argc, char** argv) {
   cout << "\n" << endl;
   auto arrd_data = arrange_data(linarr, data);
 
-  // BUG: linear_arrangement is resulting in two different instances. why?
-
   // Run solver
   solver_cmp(data);
-  solver_cmp(arrd_data);
 
   // Run DP Algorithm
   auto [dp_V, dp_S] = knapsackWithConflicts(arrd_data);

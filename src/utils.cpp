@@ -84,7 +84,8 @@ KnapsackData arrange_data(const vector<int>& idx, const KnapsackData& data) {
   ndata.p = arrange_arr(data.p, idx);
   ndata.w = arrange_arr(data.w, idx);
   for (auto p : data.pairs) {
-    ndata.pairs.push_back({idx[p.first - 1] + 1, idx[p.second - 1] + 1});
+    ndata.pairs.push_back({find(idx.begin(), idx.end(), p.first-1) - idx.begin() + 1,
+                          find(idx.begin(), idx.end(), p.second-1) - idx.begin() + 1});
   }
   return ndata;
 }
