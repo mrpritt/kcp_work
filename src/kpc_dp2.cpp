@@ -38,23 +38,25 @@ tuple<int, vector<bool>, unsigned, double> KPC_DP(KnapsackData& data, int J) {
     auto conflicts = pairs2vv(n, data.pairs);
 
     // Initialize the previous DP map
-    unordered_map<pair<vector<bool>, int>, int, PairHash> previousDP;
+    unordered_map<pair<vector<bool>, int>, pair<int, vector<bool>>, PairHash> previousDP;
     vector<bool> initialSubset(J);
-    previousDP[{initialSubset, W}] = 0; // Base case: no items, full weight, no value
+    vector<bool> initialSolution(n);
+    previousDP[{initialSubset, W}] = {0, initialSolution}; // Base case: no items, full weight, no value
 
     // Fill the DP table iteratively
     for (int i = 0; i < n; ++i) { // For each item
-        unordered_map<pair<vector<bool>, int>, int, PairHash> currentDP;
+        unordered_map<pair<vector<bool>, int>, pair<int, vector<bool>>, PairHash> currentDP;
 
         for (const auto& entry : previousDP) { // Iterate through previous states
             auto [subset, weight] = entry.first;
-            auto value = entry.second;
+            auto [value, solution] = entry.second;
 
+            vector<bool> newSolution = solution;
             vector<bool> newSubset = subset; // Copy the existing subset
             newSubset[i%J] = false;
 
             // Case 1: Do not include item i
-            currentDP[{newSubset, weight}] = value; nup++;
+            currentDP[{newSubset, weight}] = {value, newSolution}; nup++;
 
             // Check if we can include item i
             if (weights[i] <= weight) {
@@ -72,9 +74,10 @@ tuple<int, vector<bool>, unsigned, double> KPC_DP(KnapsackData& data, int J) {
                     int newWeight = weight - weights[i];
                     int newValue = values[i] + value;
                     newSubset[i%J] = true; // Include item i in the subset
+                    newSolution[i] = true;
 
                     // Update current DP if this combination is better
-                    currentDP[{newSubset, newWeight}] = newValue; nup++;
+                    currentDP[{newSubset, newWeight}] = {newValue, newSolution}; nup++;
                 }
             }
         }
@@ -85,11 +88,13 @@ tuple<int, vector<bool>, unsigned, double> KPC_DP(KnapsackData& data, int J) {
 
     // Find the maximum value achievable with all items and weight limit W
     int maxValue = 0;
+    vector<bool> bestSolution;
     for (const auto& entry : previousDP) {
         auto [subset, weight] = entry.first;
-        auto value = entry.second;
+        auto [value, solution] = entry.second;
         if (value > maxValue) {
             maxValue = value;
+            bestSolution = solution;
         }
     }
 
@@ -111,6 +116,6 @@ tuple<int, vector<bool>, unsigned, double> KPC_DP(KnapsackData& data, int J) {
     // Improve solution
 
 
-    return {maxValue, vector<bool>(n), nup, t.elapsed()};
+    return {maxValue, bestSolution, nup, t.elapsed()};
 }
 

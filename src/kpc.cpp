@@ -42,6 +42,17 @@ KnapsackData read_knapsack_data(const string& filename) {
     return data;
 }
 
+void print_solution(const vector<bool>& s, const KnapsackData& data) {
+  // Order by efficiency
+  vector<int> π(data.n, 0);
+  iota(π.begin(), π.end(), 0);
+  sort(π.begin(), π.end(), [&](int i, int j) { return data.p[i] * data.w[j] > data.p[j] * data.w[i]; });
+
+  for(auto i=0u; i != s.size(); ++i)
+    fmt::print("{}", s[π[i]] ? "■" : ".");
+  fmt::print("\n");
+}
+
 void solver_cmp(KnapsackData data) {
   try {
     KPModel kp_model;
@@ -68,17 +79,12 @@ void solver_cmp(KnapsackData data) {
     auto [lp_S, lp_V] = lp_model.getSolution(lp_x);
 
     fmt::print("KP: {}\n", kp_V);
-    for(auto i=0u; i != kp_S.size(); ++i)
-      fmt::print("{}", kp_S[π[i]] ? "■" : ".");
-    fmt::print("\n");
+    print_solution(kp_S, data);
     fmt::print("KPC: {}\n", kpc_V);
-    for(auto i=0u; i != kpc_S.size(); ++i)
-      fmt::print("{}", kpc_S[π[i]] ? "■" : ".");
-    fmt::print("\n");
+    print_solution(kpc_S, data);
     fmt::print("WMIS: {}\n", wmis_V);
-    for(auto i=0u; i != wmis_S.size(); ++i)
-      fmt::print("{}", wmis_S[π[i]] ? "■" : ".");
-    fmt::print("\n");
+    print_solution(wmis_S, data);
+
     fmt::print("LP: {}\n", lp_V);
     for(auto i=0u; i != lp_x.size(); ++i) {
         fmt::print("{:.2f} {} | ", lp_x[π[i]], kpc_S[π[i]] ? "■" : ".");
@@ -88,15 +94,15 @@ void solver_cmp(KnapsackData data) {
     fmt::print("\n");
 
     // Find a and b
-    uint a = 0;
-    uint b = 0;
-    for (auto i=0u; i != kp_S.size(); ++i) {
-      if (kp_S[π[i]])
-        b = i;
-      if (kp_S[π[i]] && a == i)
-        a++;
-    }
-    cout << "Core KP: " << a << " " << b << endl;
+    // uint a = 0;
+    // uint b = 0;
+    // for (auto i=0u; i != kp_S.size(); ++i) {
+    //   if (kp_S[π[i]])
+    //     b = i;
+    //   if (kp_S[π[i]] && a == i)
+    //     a++;
+    // }
+    // cout << "Core KP: " << a << " " << b << endl;
 
   } catch (IloCplex::Exception& e) {
     cerr << "CPLEX exception caught: " << e.getMessage() << endl;
@@ -128,6 +134,7 @@ int main(int argc, char** argv) {
   // Run DP Algorithm
   auto [dp_V, dp_S] = knapsackWithConflicts(arrd_data);
   cout << "KPC_DParrd: " << dp_V << endl;
+  print_solution(dp_S, arrd_data);
   auto [dp_V2, dp_S2] = knapsackWithConflicts(data);
   cout << "KPC_DP: " << dp_V2 << endl;
 
@@ -137,6 +144,7 @@ int main(int argc, char** argv) {
     auto inv_linarr = inv_arr(linarr);
     kpcdp_S = arrange_arr(kpcdp_S, inv_linarr);
     fmt::print("{}\t{}\t{}\t{}\n", j, kpcdp_V, nup, tim);
+    // print_solution(kpcdp_S, data);
   }
 
   return 0;
