@@ -1,3 +1,5 @@
+#ifndef MODEL_HPP
+#define MODEL_HPP
 #include <iostream>
 #include <fstream>
 #include <memory>
@@ -46,3 +48,5 @@ public:
     void build(const KnapsackData& data);
     pair<std::vector<bool>, float> getSolution(vector<float> solution);
 };
+
+#endif

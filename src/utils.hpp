@@ -1,5 +1,9 @@
-#include <vector>
+#ifndef UTILS_HPP
+#define UTILS_HPP
+
 #include "kpc.hpp"
+#include <set>
+#include <vector>
 
 std::vector<int> inv_arr(const std::vector<int>& arr);
 
@@ -11,8 +15,11 @@ std::vector<bool> arrange_arr(const std::vector<bool>& arr, const std::vector<in
 
 std::vector<std::vector<int>> pairs2vv(int n, const std::vector<std::pair<int, int>>& pairs);
 
-// TODO: implement some sort of linear arrangement
-// this just calculates the max distance in the default arrangement
 std::pair<std::vector<int>, int> linear_arrangement(const std::vector<std::vector<int>>& conflicts);
 
+std::pair<std::set<int>, KnapsackData> extract_conflicts(const std::vector<bool>& s, const KnapsackData& data);
+
+std::vector<bool> combine_solutions(const std::vector<bool>& s, const std::vector<bool>& c, const std::set<int>& ref);
+
 KnapsackData arrange_data(const std::vector<int>& idx, const KnapsackData& data);
+#endif

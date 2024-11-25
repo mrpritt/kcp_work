@@ -1,5 +1,6 @@
 #include "utils.hpp"
 #include <vector>
+#include <set>
 #include <numeric>
 #include <algorithm>
 #include <boost/graph/adjacency_list.hpp>
@@ -72,7 +73,7 @@ pair<vector<int>, int> linear_arrangement(const vector<vector<int>>& conflicts) 
         }
     }
 
-    fmt::print("Cuthill-McKee window size: {}\n", max_d);
+    // fmt::print("Cuthill-McKee window size: {}\n", max_d);
     return {ordering, max_d};
 }
 
@@ -88,4 +89,54 @@ KnapsackData arrange_data(const vector<int>& idx, const KnapsackData& data) {
                           find(idx.begin(), idx.end(), p.second-1) - idx.begin() + 1});
   }
   return ndata;
+}
+
+pair<set<int>, KnapsackData> extract_conflicts(const vector<bool>& s, const KnapsackData& data) {
+    int n = data.n;
+    int W = data.W;
+    auto conflicts = pairs2vv(data.n, data.pairs);
+    vector<vector<int>> c_conflicts(n);
+    KnapsackData sub;
+    set<int> c_items;
+    for (int i = 0; i < n; ++i) {
+        if (s[i]) {
+            for (auto j : conflicts[i]) {
+                if (j > i && s[j]) {
+                    c_items.insert(i);
+                    c_items.insert(j);
+                    c_conflicts[i].push_back(j);
+                }
+            }
+        }
+    }
+    vector<int> map(c_items.begin(), c_items.end());
+    for (int i = 0; i < map.size(); ++i) {
+        int j = map[i];
+        sub.p.push_back(data.p[j]);
+        sub.w.push_back(data.w[j]);
+        for (auto c : c_conflicts[j]) {
+            int c_id = (find(map.begin(), map.end(), c) - map.begin());
+            if (c_id > i)
+                sub.pairs.push_back({i+1, c_id+1});
+        }
+    }
+    sub.n = c_items.size();
+    sub.W = W;
+
+    return {c_items, sub};
+}
+
+vector<bool> combine_solutions(const vector<bool>& s,
+                               const vector<bool>& c,
+                               const set<int>& ref) {
+    vector<bool> ns = s;
+    int i = 0;
+    for (auto r : ref) {
+        cout << r << " ";
+        ns[r] = c[i];
+        ++i;
+    }
+    cout << endl;
+
+    return ns;
 }

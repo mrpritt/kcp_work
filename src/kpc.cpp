@@ -135,17 +135,31 @@ int main(int argc, char** argv) {
   auto [dp_V, dp_S] = knapsackWithConflicts(arrd_data);
   cout << "KPC_DParrd: " << dp_V << endl;
   print_solution(dp_S, arrd_data);
-  auto [dp_V2, dp_S2] = knapsackWithConflicts(data);
-  cout << "KPC_DP: " << dp_V2 << endl;
+  // auto [dp_V2, dp_S2] = knapsackWithConflicts(data);
+  // cout << "KPC_DP: " << dp_V2 << endl;
 
+  J = J - 20;
+
+  auto [kpcdp_V, kpcdp_S, nup, tim] = KPC_DP(arrd_data, J);
+  fmt::print("{}\t{}\t{}\t{}\n", J, kpcdp_V, nup, tim);
+  print_solution(kpcdp_S, arrd_data);
+  auto [c_items, c_data] = extract_conflicts(kpcdp_S, arrd_data);
+  auto [c_V, c_S] = knapsackWithConflicts(c_data);
+  kpcdp_S = combine_solutions(kpcdp_S, c_S, c_items);
+
+  // TODO: improve solution
+
+  auto inv_linarr = inv_arr(linarr);
+  kpcdp_S = arrange_arr(kpcdp_S, inv_linarr);
+  print_solution(kpcdp_S, data);
   // DP with sliding window
-  for(auto j = 1; j != J + 1; ++j) {
-    auto [kpcdp_V, kpcdp_S, nup, tim] = KPC_DP(arrd_data, j);
-    auto inv_linarr = inv_arr(linarr);
-    kpcdp_S = arrange_arr(kpcdp_S, inv_linarr);
-    fmt::print("{}\t{}\t{}\t{}\n", j, kpcdp_V, nup, tim);
-    // print_solution(kpcdp_S, data);
-  }
+  // for(auto j = 1; j != J + 1; ++j) {
+  //   auto [kpcdp_V, kpcdp_S, nup, tim] = KPC_DP(arrd_data, j);
+  //   auto inv_linarr = inv_arr(linarr);
+  //   kpcdp_S = arrange_arr(kpcdp_S, inv_linarr);
+  //   fmt::print("{}\t{}\t{}\t{}\n", j, kpcdp_V, nup, tim);
+  //   // print_solution(kpcdp_S, data);
+  // }
 
   return 0;
 }

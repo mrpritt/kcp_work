@@ -98,23 +98,6 @@ tuple<int, vector<bool>, unsigned, double> KPC_DP(KnapsackData& data, int J) {
         }
     }
 
-    // Isolate conflicts
-    // for (int i = 0; i < n; ++i) {
-    //     if (bestSolution[i]) {
-    //         for (auto j : conflicts[i]) {
-    //             if (bestSolution[j]) {
-    //                 cout << "Conflict: " << i << " " << j << endl;
-    //             }
-    //         }
-    //     }
-    // }
-
-
-    // Solve Conflicts
-
-
-    // Improve solution
-
 
     return {maxValue, bestSolution, nup, t.elapsed()};
 }
