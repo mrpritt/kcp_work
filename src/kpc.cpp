@@ -147,7 +147,8 @@ int main(int argc, char** argv) {
   auto [c_V, c_S] = knapsackWithConflicts(c_data);
   kpcdp_S = combine_solutions(kpcdp_S, c_S, c_items);
 
-  // TODO: improve solution
+  kpcdp_S = greedy_improvement(kpcdp_S, arrd_data);
+  kpcdp_V = solution_value(kpcdp_S, arrd_data);
 
   auto inv_linarr = inv_arr(linarr);
   kpcdp_S = arrange_arr(kpcdp_S, inv_linarr);

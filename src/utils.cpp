@@ -1,6 +1,7 @@
 #include "utils.hpp"
 #include <vector>
 #include <set>
+#include <unordered_set>
 #include <numeric>
 #include <algorithm>
 #include <boost/graph/adjacency_list.hpp>
@@ -132,11 +133,78 @@ vector<bool> combine_solutions(const vector<bool>& s,
     vector<bool> ns = s;
     int i = 0;
     for (auto r : ref) {
-        cout << r << " ";
         ns[r] = c[i];
         ++i;
     }
-    cout << endl;
 
     return ns;
 }
+
+std::unordered_set<int> available_items(const vector<bool>& s, const KnapsackData& data) {
+    auto conflicts = pairs2vv(data.n, data.pairs);
+    vector<int> items(data.n, 0);
+    iota(items.begin(), items.end(), 0);
+    std::unordered_set<int> free(items.begin(), items.end());
+    for (int i = 0; i < s.size(); ++i) {
+        if (s[i]) {
+            free.erase(i);
+            for (auto j : conflicts[i]) free.erase(j);
+        }
+    }
+    return free;
+}
+
+vector<bool> greedy_improvement(const vector<bool>& s, const KnapsackData& data) {
+    vector<bool> ns = s;
+    auto conflicts = pairs2vv(data.n, data.pairs);
+    auto free = available_items(s, data);
+    int curr_weight = solution_weight(s, data);
+    bool canImprove = true;
+    while (canImprove) {
+        // Get max item
+        int best_i = -1;
+        int max_value = -1;
+        for (int i = 0; i < s.size(); ++i) {
+            // check for conflicts
+            if (!ns[i] && curr_weight + data.w[i] <= data.W && free.count(i) && data.p[i] > max_value) {
+                best_i = i;
+                max_value = data.p[i];
+            }
+
+        }
+        // Add it
+        if (best_i >= 0) {
+            ns[best_i] = true;
+            curr_weight += data.w[best_i];
+            free.erase(best_i);
+            for (auto j : conflicts[best_i]) free.erase(j);
+        } else {
+            canImprove = false;
+        }
+    }
+    return ns;
+}
+
+int solution_weight(const vector<bool>& s, const KnapsackData& data) {
+    int weight = 0;
+    for (int i = 0; i < s.size(); ++i) {
+        if (s[i]) {
+         weight += data.w[i];
+        }
+    }
+    return weight;
+}
+
+int solution_value(const vector<bool>& s, const KnapsackData& data) {
+    int value = 0;
+    for (int i = 0; i < s.size(); ++i) {
+        if (s[i]) {
+         value += data.p[i];
+        }
+    }
+    return value;
+}
+
+
+
+
