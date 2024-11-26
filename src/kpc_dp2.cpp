@@ -25,9 +25,9 @@ struct PairHash {
     }
 };
 
-static int nup;
+static unsigned int nup;
 
-tuple<int, vector<bool>, unsigned, double> KPC_DP(KnapsackData& data, int J) {
+tuple<int, vector<bool>, stats> KPC_DP(KnapsackData& data, int J) {
     // Unpack KnapsackData
     int n = data.n;
     int W = data.W;
@@ -98,7 +98,8 @@ tuple<int, vector<bool>, unsigned, double> KPC_DP(KnapsackData& data, int J) {
         }
     }
 
+    stats s = {nup, t.elapsed()};
 
-    return {maxValue, bestSolution, nup, t.elapsed()};
+    return {maxValue, bestSolution, s};
 }
 

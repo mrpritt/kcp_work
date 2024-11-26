@@ -163,12 +163,12 @@ vector<bool> greedy_improvement(const vector<bool>& s, const KnapsackData& data)
     while (canImprove) {
         // Get max item
         int best_i = -1;
-        int max_value = -1;
+        double max_value = -1;
         for (int i = 0; i < s.size(); ++i) {
             // check for conflicts
-            if (!ns[i] && curr_weight + data.w[i] <= data.W && free.count(i) && data.p[i] > max_value) {
+            if (!ns[i] && curr_weight + data.w[i] <= data.W && free.count(i) && data.p[i]/data.w[i] > max_value) {
                 best_i = i;
-                max_value = data.p[i];
+                max_value = data.p[i]/data.w[i];
             }
 
         }
@@ -205,6 +205,14 @@ int solution_value(const vector<bool>& s, const KnapsackData& data) {
     return value;
 }
 
+int countXOR(const vector<bool>& a, const vector<bool>& b) {
+    // NOTE: assumes a.size() == b.size()
 
-
+    int count = 0;
+    for (size_t i = 0; i < a.size(); ++i) {
+         if (a[i] ^ b[i])
+            ++count;
+    }
+    return count;
+}
 

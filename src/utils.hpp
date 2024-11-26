@@ -6,6 +6,13 @@
 #include <unordered_set>
 #include <vector>
 
+typedef struct {
+    unsigned int nup;
+    double tim;
+} stats;
+
+int countXOR(const std::vector<bool>& a, const std::vector<bool>& b);
+
 std::vector<int> inv_arr(const std::vector<int>& arr);
 
 template <class T>

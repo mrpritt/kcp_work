@@ -104,6 +104,39 @@ void WMISModel::build(const KnapsackData& data) {
     solver_ = IloCplex(*model_);
 }
 
+void LPRModel::build(const KnapsackData& data) {}
+void LPRModel::build(const KnapsackData& data, int P, int Wl) {
+    // Create the CPLEX environment
+    env_ = std::make_unique<IloEnv>();
+    model_ = std::make_unique<IloModel>(*env_);
+
+    // Variables
+    x_ = IloNumVarArray(*env_, data.n, 0.0, 1.0, ILOFLOAT);
+
+    // Constraints
+    IloExpr expr(*env_);
+    for (int i = 0; i < data.n; ++i)
+        expr += data.p[i] * x_[i];
+    model_->add(expr >= P);
+
+    expr.clear();
+    for (int i = 0; i < data.n; ++i)
+        expr += data.w[i] * x_[i];
+    model_->add(expr >= Wl);
+
+    for (const auto& pair : data.pairs) {
+      model_->add(x_[pair.first-1] + x_[pair.second-1] <= 1);
+    }
+
+    // Objective
+    expr.clear();
+    for (int i = 0; i < data.n; ++i)
+        expr += data.w[i] * x_[i];
+    model_->add(IloMinimize(*env_, expr));
+
+    solver_ = IloCplex(*model_);
+}
+
 pair<vector<bool>, float> KPModel::getSolution(vector<float> solution) {
   const unsigned n = x_.getSize();
   vector<bool> S(n, false);
@@ -119,6 +152,7 @@ pair<vector<bool>, float> KPCModel::getSolution(vector<float> solution) {
     S[i] = (solution[i] > 0.5);
   return {S, solver_.getObjValue()};
 }
+
 pair<vector<float>, float> LPModel::getSolution(vector<float> solution) {
   return {solution, solver_.getObjValue()};
 }
@@ -129,6 +163,10 @@ pair<vector<bool>, float> WMISModel::getSolution(vector<float> solution) {
   for (auto i = 0u; i < n; ++i)
     S[i] = (solution[i] > 0.5);
   return {S, solver_.getObjValue()};
+}
+
+pair<vector<float>, float> LPRModel::getSolution(vector<float> solution) {
+  return {solution, solver_.getObjValue()};
 }
 
 pair<vector<float>, IloAlgorithm::Status> Model::solve() {
