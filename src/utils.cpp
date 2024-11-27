@@ -12,7 +12,6 @@
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
-
 using namespace boost;
 using namespace std;
 
@@ -111,12 +110,12 @@ pair<set<int>, KnapsackData> extract_conflicts(const vector<bool>& s, const Knap
         }
     }
     vector<int> map(c_items.begin(), c_items.end());
-    for (int i = 0; i < map.size(); ++i) {
+    for (auto i = 0u; i < map.size(); ++i) {
         int j = map[i];
         sub.p.push_back(data.p[j]);
         sub.w.push_back(data.w[j]);
         for (auto c : c_conflicts[j]) {
-            int c_id = (find(map.begin(), map.end(), c) - map.begin());
+            auto c_id = (find(map.begin(), map.end(), c) - map.begin());
             if (c_id > i)
                 sub.pairs.push_back({i+1, c_id+1});
         }
@@ -145,7 +144,7 @@ std::unordered_set<int> available_items(const vector<bool>& s, const KnapsackDat
     vector<int> items(data.n, 0);
     iota(items.begin(), items.end(), 0);
     std::unordered_set<int> free(items.begin(), items.end());
-    for (int i = 0; i < s.size(); ++i) {
+    for (auto i = 0u; i < s.size(); ++i) {
         if (s[i]) {
             free.erase(i);
             for (auto j : conflicts[i]) free.erase(j);
@@ -164,7 +163,7 @@ vector<bool> greedy_improvement(const vector<bool>& s, const KnapsackData& data)
         // Get max item
         int best_i = -1;
         double max_value = -1;
-        for (int i = 0; i < s.size(); ++i) {
+        for (auto i = 0u; i < s.size(); ++i) {
             // check for conflicts
             if (!ns[i] && curr_weight + data.w[i] <= data.W && free.count(i) && data.p[i]/data.w[i] > max_value) {
                 best_i = i;
@@ -187,7 +186,7 @@ vector<bool> greedy_improvement(const vector<bool>& s, const KnapsackData& data)
 
 int solution_weight(const vector<bool>& s, const KnapsackData& data) {
     int weight = 0;
-    for (int i = 0; i < s.size(); ++i) {
+    for (auto i = 0u; i < s.size(); ++i) {
         if (s[i]) {
          weight += data.w[i];
         }
@@ -197,7 +196,7 @@ int solution_weight(const vector<bool>& s, const KnapsackData& data) {
 
 int solution_value(const vector<bool>& s, const KnapsackData& data) {
     int value = 0;
-    for (int i = 0; i < s.size(); ++i) {
+    for (auto i = 0u; i < s.size(); ++i) {
         if (s[i]) {
          value += data.p[i];
         }

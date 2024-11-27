@@ -1,7 +1,7 @@
 /**
  * \file kcp.hpp
  *   \author Marcus Ritt <marcus.ritt@inf.ufrgs.br>
- *   \date Time-stamp: <2024-09-21 11:57:47 ritt>
+ *   \date Time-stamp: <2024-11-27 15:12:48 ritt>
  */
 #pragma once
 
@@ -15,4 +15,6 @@ struct KnapsackData {
     std::vector<int> p;
     std::vector<int> w;
     std::vector<std::pair<int, int>> pairs;
+
+    KnapsackData() : n(0), I(0), W(0) {}
 };
