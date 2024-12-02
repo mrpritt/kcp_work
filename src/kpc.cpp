@@ -15,74 +15,17 @@ using namespace std;
 #include "utils.hpp"
 #include "timer.hpp"
 
-KnapsackData read_knapsack_data(const string& filename) {
-    KnapsackData data;
-    ifstream in(filename);
-    string line;
-
-    if (in.is_open()) {
-        in >> data.n >> data.I >> data.W;
-
-        data.p.resize(data.n);
-        for (int i = 0; i < data.n; ++i)
-	  in >> data.p[i];
-
-        data.w.resize(data.n);
-        for (int i = 0; i < data.n; ++i)
-	  in >> data.w[i];
-
-        data.pairs.resize(data.I);
-        for (int i = 0; i < data.I; ++i)
-	  in >> data.pairs[i].first >> data.pairs[i].second;
-
-        in.close();
-    } else {
-        cerr << "Unable to open file: " << filename << endl;
-    }
-
-    return data;
-}
-
-void print_solution(const vector<bool>& s, const KnapsackData& data) {
-  // Order by efficiency
-  vector<int> π(data.n, 0);
-  iota(π.begin(), π.end(), 0);
-  sort(π.begin(), π.end(), [&](int i, int j) { return data.p[i] * data.w[j] > data.p[j] * data.w[i]; });
-
-  for(auto i=0u; i != s.size(); ++i)
-    fmt::print("{}", s[π[i]] ? "■" : ".");
-  fmt::print("\n");
-}
-
 void solver_cmp(KnapsackData data) {
   try {
     KPModel kp_model;
     KPCModel kpc_model;
     LPModel lp_model;
     WMISModel wmis_model;
-    LPRModel lpr_model;
-    kp_model.build(data);
-    kpc_model.build(data);
-    lp_model.build(data);
-    wmis_model.build(data);
-    auto [kp_x,kp_status] = kp_model.solve();
-    auto [kpc_x,kpc_status] = kpc_model.solve();
-    auto [lp_x,lp_status] = lp_model.solve();
-    auto [wmis_x,wmis_status] = wmis_model.solve();
 
-    // Order by efficiency
-    vector<int> π(data.n, 0);
-    iota(π.begin(), π.end(), 0);
-    sort(π.begin(), π.end(), [&](int i, int j) { return data.p[i] * data.w[j] > data.p[j] * data.w[i]; });
-
-    auto [kp_S, kp_V] = kp_model.getSolution(kp_x);
-    auto [kpc_S, kpc_V] = kpc_model.getSolution(kpc_x);
-    auto [lp_S, lp_V] = lp_model.getSolution(lp_x);
-    auto [wmis_S, wmis_V] = wmis_model.getSolution(wmis_x);
-
-    lpr_model.build(data, kpc_V, solution_weight(kpc_S, data));
-    auto [lpr_x,lpr_status] = lpr_model.solve();
-    auto [lpr_S, lpr_V] = lpr_model.getSolution(lpr_x);
+    auto [kp_S, kp_V] = kp_model.run(data);
+    auto [kpc_S, kpc_V] = kpc_model.run(data);
+    auto [lp_S, lp_V] = lp_model.run(data);
+    auto [wmis_S, wmis_V] = wmis_model.run(data);
 
     fmt::print("KP: {}\n", kp_V);
     print_solution(kp_S, data);
@@ -91,32 +34,18 @@ void solver_cmp(KnapsackData data) {
     fmt::print("WMIS: {}\n", wmis_V);
     print_solution(wmis_S, data);
 
+    // Order by efficiency
+    vector<int> π(data.n, 0);
+    iota(π.begin(), π.end(), 0);
+    sort(π.begin(), π.end(), [&](int i, int j) { return data.p[i] * data.w[j] > data.p[j] * data.w[i]; });
+
     fmt::print("LP: {}\n", lp_V);
-    for(auto i=0u; i != lp_x.size(); ++i) {
-        fmt::print("{:.2f} {} | ", lp_x[π[i]], kpc_S[π[i]] ? "■" : ".");
+    for(auto i=0u; i != lp_S.size(); ++i) {
+        fmt::print("{:.2f} {} | ", lp_S[π[i]], kpc_S[π[i]] ? "■" : ".");
         if ((i + 1) % 10 == 0)
           fmt::print("\n");
     }
     fmt::print("\n");
-
-    fmt::print("LPR: {}\n", lpr_V);
-    for(auto i=0u; i != lpr_x.size(); ++i) {
-        fmt::print("{:.2f} {} | ", lpr_x[π[i]], kpc_S[π[i]] ? "■" : ".");
-        if ((i + 1) % 10 == 0)
-          fmt::print("\n");
-    }
-    fmt::print("\n");
-
-    // Find a and b
-    // uint a = 0;
-    // uint b = 0;
-    // for (auto i=0u; i != kp_S.size(); ++i) {
-    //   if (kp_S[π[i]])
-    //     b = i;
-    //   if (kp_S[π[i]] && a == i)
-    //     a++;
-    // }
-    // cout << "Core KP: " << a << " " << b << endl;
 
   } catch (IloCplex::Exception& e) {
     cerr << "CPLEX exception caught: " << e.getMessage() << endl;
@@ -142,30 +71,34 @@ int main(int argc, char** argv) {
   cout << "\n" << endl;
   auto arrd_data = arrange_data(linarr, data);
 
-  // Run solver
-  solver_cmp(data);
+  // Run solver comparison
+  // solver_cmp(data);
+
+  KPCModel kpc_model;
+  auto [kpc_S, kpc_V] = kpc_model.run(data);
+  print_solution(kpc_S, data);
 
   // Run DP Algorithm
-  auto [dp_V, dp_S] = knapsackWithConflicts(arrd_data);
-  cout << "KPC_DParrd: " << dp_V << endl;
-  print_solution(dp_S, arrd_data);
+  // auto [dp_V, dp_S] = knapsackWithConflicts(arrd_data);
+  // cout << "KPC_DParrd: " << dp_V << endl;
+  // print_solution(dp_S, arrd_data);
   // auto [dp_V2, dp_S2] = knapsackWithConflicts(data);
   // cout << "KPC_DP: " << dp_V2 << endl;
 
   // DP with sliding window
-  fmt::print("J\tnup\tv_orig\tv_fact\tv_imp\timp*_diff\timp_fact_diff\tc_size\tXOR_f\ttime\n");
-  for(auto j = 1; j <= J; ++j) {
-    timer t;
-    auto [v_orig, S_orig, stats_orig] = KPC_DP(arrd_data, j);
-    auto [c_items, c_data] = extract_conflicts(S_orig, arrd_data);
-    auto [c_V, c_S] = knapsackWithConflicts(c_data);
-    auto S_fact = combine_solutions(S_orig, c_S, c_items);
-    int v_fact = solution_value(S_fact, arrd_data);
-    auto S_imp = greedy_improvement(S_fact, arrd_data);
-    int v_imp = solution_value(S_imp, arrd_data);
-
-    fmt::print("{}\t{}\t{}\t{}\t{}\t{:+.5f}\t{:+.5f}\t{}\t{}\t{:.5f}\n", j, stats_orig.nup, v_orig, v_fact, v_imp, (double) (v_imp - dp_V)/dp_V, (double) (v_imp - v_fact)/v_fact, c_items.size(), countXOR(S_fact, dp_S), t.elapsed());
-  }
+  // fmt::print("J\tnup\tv_orig\tv_fact\tv_imp\timp*_diff\timp_fact_diff\tc_size\tXOR_f\ttime\n");
+  // for(auto j = 1; j <= J; ++j) {
+  //   timer t;
+  //   auto [v_orig, S_orig, stats_orig] = KPC_DP(arrd_data, j);
+  //   auto [c_items, c_data] = extract_conflicts(S_orig, arrd_data);
+  //   auto [c_V, c_S] = knapsackWithConflicts(c_data);
+  //   auto S_fact = combine_solutions(S_orig, c_S, c_items);
+  //   int v_fact = solution_value(S_fact, arrd_data);
+  //   auto S_imp = greedy_improvement(S_fact, arrd_data);
+  //   int v_imp = solution_value(S_imp, arrd_data);
+  //
+  //   fmt::print("{}\t{}\t{}\t{}\t{}\t{:+.5f}\t{:+.5f}\t{}\t{}\t{:.5f}\n", j, stats_orig.nup, v_orig, v_fact, v_imp, (double) (v_imp - kpc_V)/kpc_V, (double) (v_imp - v_fact)/v_fact, c_items.size(), countXOR(S_fact, kpc_S), t.elapsed());
+  // }
 
   return 0;
 }

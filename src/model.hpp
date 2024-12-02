@@ -29,31 +29,28 @@ class KPModel: public Model {
 public:
     void build(const KnapsackData& data);
     pair<std::vector<bool>, float> getSolution(vector<float> solution);
+    pair<std::vector<bool>, float> run(const KnapsackData& data);
 };
 
 class KPCModel: public Model {
 public:
     void build(const KnapsackData& data);
     pair<std::vector<bool>, float> getSolution(vector<float> solution);
+    pair<std::vector<bool>, float> run(const KnapsackData& data);
 };
 
 class LPModel: public Model {
 public:
     void build(const KnapsackData& data);
     pair<std::vector<float>, float> getSolution(vector<float> solution);
+    pair<std::vector<float>, float> run(const KnapsackData& data);
 };
 
 class WMISModel: public Model {
 public:
     void build(const KnapsackData& data);
     pair<std::vector<bool>, float> getSolution(vector<float> solution);
-};
-
-class LPRModel: public Model {
-public:
-    void build(const KnapsackData& data);
-    void build(const KnapsackData& data, int P, int Wl);
-    pair<std::vector<float>, float> getSolution(vector<float> solution);
+    pair<std::vector<bool>, float> run(const KnapsackData& data);
 };
 
 #endif

@@ -6,6 +6,9 @@
 #include <algorithm>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/cuthill_mckee_ordering.hpp>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 
 #include "kpc.hpp"
 
@@ -14,6 +17,45 @@
 
 using namespace boost;
 using namespace std;
+
+KnapsackData read_knapsack_data(const string& filename) {
+    KnapsackData data;
+    ifstream in(filename);
+    string line;
+
+    if (in.is_open()) {
+        in >> data.n >> data.I >> data.W;
+
+        data.p.resize(data.n);
+        for (int i = 0; i < data.n; ++i)
+	  in >> data.p[i];
+
+        data.w.resize(data.n);
+        for (int i = 0; i < data.n; ++i)
+	  in >> data.w[i];
+
+        data.pairs.resize(data.I);
+        for (int i = 0; i < data.I; ++i)
+	  in >> data.pairs[i].first >> data.pairs[i].second;
+
+        in.close();
+    } else {
+        cerr << "Unable to open file: " << filename << endl;
+    }
+
+    return data;
+}
+
+void print_solution(const vector<bool>& s, const KnapsackData& data) {
+  // Order by efficiency
+  vector<int> π(data.n, 0);
+  iota(π.begin(), π.end(), 0);
+  sort(π.begin(), π.end(), [&](int i, int j) { return data.p[i] * data.w[j] > data.p[j] * data.w[i]; });
+
+  for(auto i=0u; i != s.size(); ++i)
+    fmt::print("{}", s[π[i]] ? "■" : ".");
+  fmt::print("\n");
+}
 
 vector<int> inv_arr(const vector<int>& arr) {
   vector<int> new_arr = arr;

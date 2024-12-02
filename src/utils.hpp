@@ -5,11 +5,15 @@
 #include <set>
 #include <unordered_set>
 #include <vector>
+#include <string>
 
 typedef struct {
     unsigned int nup;
     double tim;
 } stats;
+
+void print_solution(const std::vector<bool>& s, const KnapsackData& data);
+KnapsackData read_knapsack_data(const std::string& filename);
 
 int countXOR(const std::vector<bool>& a, const std::vector<bool>& b);
 
