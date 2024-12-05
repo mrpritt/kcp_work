@@ -12,8 +12,11 @@ typedef struct {
   double tim;
 } stats;
 
-void print_solution(const std::vector<bool> &s, const KnapsackData &data);
 KnapsackData read_knapsack_data(const std::string &filename);
+
+void print_data(const KnapsackData&);
+
+KnapsackData extractSubproblem(const std::set<int>&, int, const KnapsackData &);
 
 int countXOR(const std::vector<bool> &a, const std::vector<bool> &b);
 

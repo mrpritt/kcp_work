@@ -16,6 +16,7 @@ using namespace std;
 #include "solution.hpp"
 #include "timer.hpp"
 #include "utils.hpp"
+#include "heuristic.hpp"
 
 void solver_cmp(KnapsackData data) {
   try {
@@ -29,10 +30,13 @@ void solver_cmp(KnapsackData data) {
     auto [lp_v, lp_x, lp_status] = lp_model.solve();
     auto [mwis_v, mwis_x, wmis_status] = wmis_model.solve();
 
-    Instance i_(data);
-    Solution kp_s(kp_x, i_);
-    Solution kpc_s(kpc_x, i_);
-    Solution mwis_s(mwis_x, i_);
+    Solution kp_s(kp_x, data);
+    Solution kpc_s(kpc_x, data);
+    Solution mwis_s(mwis_x,data);
+
+    for (auto i : kpc_s.compatibleItems())
+      fmt::print("{} ", i);
+    fmt::print("\n");
 
     fmt::print("KP: {}\n", kp_s.value());
     kp_s.print();
@@ -81,14 +85,17 @@ int main(int argc, char **argv) {
   // auto arrd_data = arrange_data(linarr, data);
 
   // Run solver comparison
-  solver_cmp(data);
+  // solver_cmp(data);
 
-  // Instance instance(filename);
-  // KPCModel kpc_model(data);
-  // auto [kpc_v, kpc_x, kpc_status] = kpc_model.solve();
-  // Solution kpc_s(kpc_x, instance);
-  // fmt::print("KPC: {}\n", kpc_v);
-  // kpc_s.print();
+  KPCModel kpc_model(data);
+  auto [kpc_v, kpc_x, kpc_status] = kpc_model.solve();
+  Solution kpc_s(kpc_x, data);
+  fmt::print("KPC: {}\n", kpc_v);
+  kpc_s.print();
+
+  Solution s = heuristic(data);
+  fmt::print("H: {}\n", s.value());
+  s.print();
 
   // Run DP Algorithm
   // auto [dp_V, dp_S] = knapsackWithConflicts(arrd_data);

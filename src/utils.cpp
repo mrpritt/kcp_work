@@ -10,9 +10,6 @@
 #include <unordered_set>
 #include <vector>
 
-#define FMT_HEADER_ONLY
-#include "fmt/format.h"
-
 using namespace boost;
 using namespace std;
 
@@ -42,19 +39,6 @@ KnapsackData read_knapsack_data(const string &filename) {
   }
 
   return data;
-}
-
-void print_solution(const vector<bool> &s, const KnapsackData &data) {
-  // Order by efficiency
-  vector<int> π(data.n, 0);
-  iota(π.begin(), π.end(), 0);
-  sort(π.begin(), π.end(), [&](int i, int j) {
-    return data.p[i] * data.w[j] > data.p[j] * data.w[i];
-  });
-
-  for (auto i = 0u; i != s.size(); ++i)
-    fmt::print("{}", s[π[i]] ? "■" : ".");
-  fmt::print("\n");
 }
 
 vector<int> inv_arr(const vector<int> &arr) {
@@ -264,4 +248,46 @@ int countXOR(const vector<bool> &a, const vector<bool> &b) {
       ++count;
   }
   return count;
+}
+
+void print_data(const KnapsackData &data) {
+  cout << data.n << " " << data.I << " " << data.W << endl;
+  for (auto i : data.p)
+    cout << i << " ";
+  cout << endl;
+  for (auto i : data.w)
+    cout << i << " ";
+  cout << endl;
+  for (auto p : data.pairs)
+    cout << p.first << " " << p.second << endl;
+  cout << endl;
+}
+
+KnapsackData extractSubproblem(const std::set<int> &items, int W,
+                               const KnapsackData &data) {
+  KnapsackData sub;
+  sub.n = items.size();
+  sub.W = W;
+  sub.I = 0;
+  sub.p = vector<int>(items.size());
+  sub.w = vector<int>(items.size());
+  sub.pairs = vector<pair<int, int>>();
+
+  int j = 0;
+  for (int i : items) {
+    sub.p[j] = data.p[i];
+    sub.w[j] = data.w[i];
+    ++j;
+  }
+
+  for (auto pair : data.pairs) {
+    if (items.count(pair.first - 1) && items.count(pair.second - 1)) {
+      int idx1 = std::distance(items.cbegin(), items.find(pair.first - 1));
+      int idx2 = std::distance(items.cbegin(), items.find(pair.second - 1));
+      sub.pairs.emplace_back(idx1+1, idx2+1);
+      ++sub.I;
+    }
+  }
+
+  return sub;
 }
