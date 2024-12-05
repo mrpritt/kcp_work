@@ -1,56 +1,68 @@
 #ifndef MODEL_HPP
 #define MODEL_HPP
-#include <iostream>
-#include <fstream>
-#include <memory>
-#include <vector>
-#include <sstream>
 
 #include "kpc.hpp"
-
 #include <ilcplex/ilocplex.h>
-
-using namespace std;
+#include <memory>
+#include <vector>
 
 class Model {
 protected:
-    std::unique_ptr<IloEnv> env_;
-    std::unique_ptr<IloModel> model_;
-    IloNumVarArray x_;
-    IloCplex solver_;
+  std::unique_ptr<IloEnv> env_;
+  std::unique_ptr<IloModel> model_;
+  IloNumVarArray x_;
+  IloCplex solver_;
+
+  void build(const KnapsackData &data);
+  virtual void defineVariables(const KnapsackData &data) = 0;
+  virtual void defineConstraints(const KnapsackData &data) = 0;
+  virtual void defineObjective(const KnapsackData &data) = 0;
 
 public:
-    virtual void build(const KnapsackData& data)=0;
-    std::pair<std::vector<float>, IloAlgorithm::Status> solve();
-    ~Model();
+  Model();
+  std::tuple<double, std::vector<float>, IloAlgorithm::Status> solve();
+  void exportModel(const std::string &filename);
+  ~Model();
 };
 
-class KPModel: public Model {
+class KPModel : public Model {
+protected:
+  void defineVariables(const KnapsackData &data) override;
+  void defineConstraints(const KnapsackData &data) override;
+  void defineObjective(const KnapsackData &data) override;
+
 public:
-    void build(const KnapsackData& data);
-    pair<std::vector<bool>, float> getSolution(vector<float> solution);
-    pair<std::vector<bool>, float> run(const KnapsackData& data);
+  KPModel(const KnapsackData &data) : Model() { build(data); };
 };
 
-class KPCModel: public Model {
+class KPCModel : public Model {
+protected:
+  void defineVariables(const KnapsackData &data) override;
+  void defineConstraints(const KnapsackData &data) override;
+  void defineObjective(const KnapsackData &data) override;
+
 public:
-    void build(const KnapsackData& data);
-    pair<std::vector<bool>, float> getSolution(vector<float> solution);
-    pair<std::vector<bool>, float> run(const KnapsackData& data);
+  KPCModel(const KnapsackData &data) : Model() { build(data); };
 };
 
-class LPModel: public Model {
+class MWISModel : public Model {
+protected:
+  void defineVariables(const KnapsackData &data) override;
+  void defineConstraints(const KnapsackData &data) override;
+  void defineObjective(const KnapsackData &data) override;
+
 public:
-    void build(const KnapsackData& data);
-    pair<std::vector<float>, float> getSolution(vector<float> solution);
-    pair<std::vector<float>, float> run(const KnapsackData& data);
+  MWISModel(const KnapsackData &data) : Model() { build(data); };
 };
 
-class WMISModel: public Model {
+class LPKPCModel : public Model {
+protected:
+  void defineVariables(const KnapsackData &data) override;
+  void defineConstraints(const KnapsackData &data) override;
+  void defineObjective(const KnapsackData &data) override;
+
 public:
-    void build(const KnapsackData& data);
-    pair<std::vector<bool>, float> getSolution(vector<float> solution);
-    pair<std::vector<bool>, float> run(const KnapsackData& data);
+  LPKPCModel(const KnapsackData &data) : Model() { build(data); };
 };
 
 #endif

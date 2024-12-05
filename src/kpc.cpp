@@ -1,58 +1,67 @@
-#include <iostream>
+#include <fmt/core.h>
 #include <fstream>
-#include <vector>
-#include <sstream>
+#include <iostream>
 #include <numeric>
+#include <sstream>
+#include <vector>
 using namespace std;
 
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
 #include "kpc.hpp"
-#include "model.hpp"
 #include "kpc_dp.hpp"
 #include "kpc_dp2.hpp"
-#include "utils.hpp"
+#include "model.hpp"
+#include "solution.hpp"
 #include "timer.hpp"
+#include "utils.hpp"
 
 void solver_cmp(KnapsackData data) {
   try {
-    KPModel kp_model;
-    KPCModel kpc_model;
-    LPModel lp_model;
-    WMISModel wmis_model;
+    KPModel kp_model(data);
+    KPCModel kpc_model(data);
+    LPKPCModel lp_model(data);
+    MWISModel wmis_model(data);
 
-    auto [kp_S, kp_V] = kp_model.run(data);
-    auto [kpc_S, kpc_V] = kpc_model.run(data);
-    auto [lp_S, lp_V] = lp_model.run(data);
-    auto [wmis_S, wmis_V] = wmis_model.run(data);
+    auto [kp_v, kp_x, kp_status] = kp_model.solve();
+    auto [kpc_v, kpc_x, kpc_status] = kpc_model.solve();
+    auto [lp_v, lp_x, lp_status] = lp_model.solve();
+    auto [mwis_v, mwis_x, wmis_status] = wmis_model.solve();
 
-    fmt::print("KP: {}\n", kp_V);
-    print_solution(kp_S, data);
-    fmt::print("KPC: {}\n", kpc_V);
-    print_solution(kpc_S, data);
-    fmt::print("WMIS: {}\n", wmis_V);
-    print_solution(wmis_S, data);
+    Instance i_(data);
+    Solution kp_s(kp_x, i_);
+    Solution kpc_s(kpc_x, i_);
+    Solution mwis_s(mwis_x, i_);
+
+    fmt::print("KP: {}\n", kp_s.value());
+    kp_s.print();
+    fmt::print("KPC: {}\n", kpc_s.value());
+    kpc_s.print();
+    fmt::print("WMIS: {}\n", mwis_s.value());
+    mwis_s.print();
 
     // Order by efficiency
     vector<int> π(data.n, 0);
     iota(π.begin(), π.end(), 0);
-    sort(π.begin(), π.end(), [&](int i, int j) { return data.p[i] * data.w[j] > data.p[j] * data.w[i]; });
+    sort(π.begin(), π.end(), [&](int i, int j) {
+      return data.p[i] * data.w[j] > data.p[j] * data.w[i];
+    });
 
-    fmt::print("LP: {}\n", lp_V);
-    for(auto i=0u; i != lp_S.size(); ++i) {
-        fmt::print("{:.2f} {} | ", lp_S[π[i]], kpc_S[π[i]] ? "■" : ".");
-        if ((i + 1) % 10 == 0)
-          fmt::print("\n");
+    fmt::print("LP: {}\n", lp_v);
+    for (auto i = 0u; i != lp_x.size(); ++i) {
+      fmt::print("{:.2f} {} | ", lp_x[π[i]], kpc_s[π[i]] ? "■" : ".");
+      if ((i + 1) % 10 == 0)
+        fmt::print("\n");
     }
     fmt::print("\n");
 
-  } catch (IloCplex::Exception& e) {
+  } catch (IloCplex::Exception &e) {
     cerr << "CPLEX exception caught: " << e.getMessage() << endl;
   }
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   if (argc < 2) {
     cerr << "Error: filename is required\n";
     cerr << "Usage: kpc <filename>\n";
@@ -63,20 +72,23 @@ int main(int argc, char** argv) {
   KnapsackData data = read_knapsack_data(filename);
 
   // heuristic linear arrangement to minimize conflict distances
-  auto conflicts = pairs2vv(data.n, data.pairs);
-  auto [linarr, J] = linear_arrangement(conflicts);
-  cout << "Linear arrangement:" << endl;
-  for (int i : linarr)
-       cout << i << " ";
-  cout << "\n" << endl;
-  auto arrd_data = arrange_data(linarr, data);
+  // auto conflicts = pairs2vv(data.n, data.pairs);
+  // auto [linarr, J] = linear_arrangement(conflicts);
+  // cout << "Linear arrangement:" << endl;
+  // for (int i : linarr)
+  //   cout << i << " ";
+  // cout << "\n" << endl;
+  // auto arrd_data = arrange_data(linarr, data);
 
   // Run solver comparison
-  // solver_cmp(data);
+  solver_cmp(data);
 
-  KPCModel kpc_model;
-  auto [kpc_S, kpc_V] = kpc_model.run(data);
-  print_solution(kpc_S, data);
+  // Instance instance(filename);
+  // KPCModel kpc_model(data);
+  // auto [kpc_v, kpc_x, kpc_status] = kpc_model.solve();
+  // Solution kpc_s(kpc_x, instance);
+  // fmt::print("KPC: {}\n", kpc_v);
+  // kpc_s.print();
 
   // Run DP Algorithm
   // auto [dp_V, dp_S] = knapsackWithConflicts(arrd_data);
@@ -97,7 +109,10 @@ int main(int argc, char** argv) {
   //   auto S_imp = greedy_improvement(S_fact, arrd_data);
   //   int v_imp = solution_value(S_imp, arrd_data);
   //
-  //   fmt::print("{}\t{}\t{}\t{}\t{}\t{:+.5f}\t{:+.5f}\t{}\t{}\t{:.5f}\n", j, stats_orig.nup, v_orig, v_fact, v_imp, (double) (v_imp - kpc_V)/kpc_V, (double) (v_imp - v_fact)/v_fact, c_items.size(), countXOR(S_fact, kpc_S), t.elapsed());
+  //   fmt::print("{}\t{}\t{}\t{}\t{}\t{:+.5f}\t{:+.5f}\t{}\t{}\t{:.5f}\n", j,
+  //   stats_orig.nup, v_orig, v_fact, v_imp, (double) (v_imp - kpc_V)/kpc_V,
+  //   (double) (v_imp - v_fact)/v_fact, c_items.size(), countXOR(S_fact,
+  //   kpc_S), t.elapsed());
   // }
 
   return 0;
