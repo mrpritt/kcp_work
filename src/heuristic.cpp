@@ -53,7 +53,7 @@ Solution right_heuristic(const KnapsackData &i_) {
   KPBModel kpb_model(kpb_i_);
   auto [kpb_v, kpb_x, kpb_stat] = kpb_model.solve();
   Solution sl(kpb_x, kpb_i_);
-  if (sl.selectedItems().size() == kpb_i_.n) {
+  if (sl.selectedItems().size() == (size_t)kpb_i_.n) {
     return Solution(i_);
   }
   // merge solutions
