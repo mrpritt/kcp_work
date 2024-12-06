@@ -63,6 +63,27 @@ void KPModel::defineObjective(const KnapsackData &data) {
 }
 
 /*
+ * KPBModel
+ */
+void KPBModel::defineVariables(const KnapsackData &data) {
+  x_ = IloNumVarArray(*env_, data.n, 0.0, 1.0, ILOINT);
+}
+
+void KPBModel::defineConstraints(const KnapsackData &data) {
+  IloExpr expr(*env_);
+  for (int i = 0; i < data.n; ++i)
+    expr += data.w[i] * x_[i];
+  model_->add(expr >= data.W);
+}
+
+void KPBModel::defineObjective(const KnapsackData &data) {
+  IloExpr expr(*env_);
+  for (int i = 0; i < data.n; ++i)
+    expr += data.p[i] * x_[i];
+  model_->add(IloMinimize(*env_, expr));
+}
+
+/*
  * KPCModel
  */
 void KPCModel::defineVariables(const KnapsackData &data) {

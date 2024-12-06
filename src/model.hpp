@@ -35,6 +35,16 @@ public:
   KPModel(const KnapsackData &data) : Model() { build(data); };
 };
 
+class KPBModel : public Model {
+protected:
+  void defineVariables(const KnapsackData &data) override;
+  void defineConstraints(const KnapsackData &data) override;
+  void defineObjective(const KnapsackData &data) override;
+
+public:
+  KPBModel(const KnapsackData &data) : Model() { build(data); };
+};
+
 class KPCModel : public Model {
 protected:
   void defineVariables(const KnapsackData &data) override;

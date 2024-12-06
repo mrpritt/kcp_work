@@ -93,9 +93,13 @@ int main(int argc, char **argv) {
   fmt::print("KPC: {}\n", kpc_v);
   kpc_s.print();
 
-  Solution s = heuristic(data);
-  fmt::print("H: {}\n", s.value());
-  s.print();
+  Solution sl = left_heuristic(data);
+  fmt::print("HL: {}\n", sl.value());
+  sl.print();
+
+  Solution sr = right_heuristic(data);
+  fmt::print("HR: {}\n", sr.value());
+  sr.print();
 
   // Run DP Algorithm
   // auto [dp_V, dp_S] = knapsackWithConflicts(arrd_data);

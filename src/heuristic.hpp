@@ -4,6 +4,7 @@
 #include "kpc.hpp"
 #include "solution.hpp"
 
-Solution heuristic(const KnapsackData &);
+Solution left_heuristic(const KnapsackData &);
+Solution right_heuristic(const KnapsackData &);
 
 #endif
