@@ -12,6 +12,7 @@ typedef struct {
   double tim;
 } stats;
 
+KnapsackData parseAMPLFile(const std::string &filename);
 KnapsackData read_knapsack_data(const std::string &filename);
 
 void print_data(const KnapsackData&);

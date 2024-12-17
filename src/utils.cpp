@@ -13,6 +13,47 @@
 using namespace boost;
 using namespace std;
 
+KnapsackData parseAMPLFile(const std::string &filename) {
+  KnapsackData data;
+  std::ifstream file(filename);
+  std::string line;
+
+  // Parse the file line by line
+  while (std::getline(file, line)) {
+    std::string keyword;
+
+    // Parse the parameters
+    if (line.find("param n :=") != std::string::npos) {
+      std::istringstream iss(line.substr(line.find(":=") + 2));
+      iss >> data.n;
+    } else if (line.find("param c :=") != std::string::npos) {
+      std::istringstream iss(line.substr(line.find(":=") + 2));
+      iss >> data.W;
+    }
+    // Parse the profits and weights
+    else if (line.find("param : V : p w :=") != std::string::npos) {
+      while (std::getline(file, line) && !line.empty() && line != ";") {
+        int index, profit, weight;
+        std::istringstream row(line);
+        row >> index >> profit >> weight;
+        data.p.push_back(profit);
+        data.w.push_back(weight);
+      }
+    }
+    // Parse the conflict pairs
+    else if (line.find("set E :=") != std::string::npos) {
+      while (std::getline(file, line) && !line.empty() && line != ";") {
+        int item1, item2;
+        std::istringstream pairRow(line);
+        pairRow >> item1 >> item2;
+        data.pairs.emplace_back(item1 + 1, item2 + 1);
+      }
+    }
+  }
+
+  return data;
+}
+
 KnapsackData read_knapsack_data(const string &filename) {
   KnapsackData data;
   ifstream in(filename);
@@ -284,7 +325,7 @@ KnapsackData extractSubproblem(const std::set<int> &items, int W,
     if (items.count(pair.first - 1) && items.count(pair.second - 1)) {
       int idx1 = std::distance(items.cbegin(), items.find(pair.first - 1));
       int idx2 = std::distance(items.cbegin(), items.find(pair.second - 1));
-      sub.pairs.emplace_back(idx1+1, idx2+1);
+      sub.pairs.emplace_back(idx1 + 1, idx2 + 1);
       ++sub.I;
     }
   }

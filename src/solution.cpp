@@ -34,7 +34,18 @@ int Solution::weight() {
 }
 
 bool Solution::isFeasible() {
-  // TODO:
+  if (this->weight() > i_.W) {
+    return false;
+  }
+  auto conflicts = pairs2vv(i_.n, i_.pairs);
+  for (int i = 0; i < i_.n; ++i) {
+    if (s_[i]) {
+      for (int j : conflicts[i]) {
+        if (s_[j])
+          return false;
+      }
+    }
+  }
   return true;
 }
 

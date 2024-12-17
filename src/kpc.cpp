@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
   }
 
   string filename = argv[1];
-  KnapsackData data = read_knapsack_data(filename);
+  KnapsackData data = parseAMPLFile(filename);
 
   // heuristic linear arrangement to minimize conflict distances
   // auto conflicts = pairs2vv(data.n, data.pairs);
@@ -87,22 +87,22 @@ int main(int argc, char **argv) {
   // Run solver comparison
   // solver_cmp(data);
 
-  timer t_solver;
-  KPCModel kpc_model(data);
-  auto [kpc_v, kpc_x, kpc_status] = kpc_model.solve();
-  Solution kpc_s(kpc_x, data);
-  fmt::print("KPC: {}\ttime: {}\n", kpc_v, t_solver.elapsed());
-  kpc_s.print();
+  // timer t_solver;
+  // KPCModel kpc_model(data);
+  // auto [kpc_v, kpc_x, kpc_status] = kpc_model.solve();
+  // Solution kpc_s(kpc_x, data);
+  // fmt::print("KPC: {}\ttime: {}\n", kpc_v, t_solver.elapsed());
+  // kpc_s.print();
 
   timer t_left;
   Solution sl = left_heuristic(data);
   fmt::print("HL: {}\ttime: {}\n", sl.value(), t_left.elapsed());
   sl.print();
 
-  timer t_right;
-  Solution sr = right_heuristic(data);
-  fmt::print("HR: {}\ttime: {}\n", sr.value(), t_right.elapsed());
-  sr.print();
+  // timer t_right;
+  // Solution sr = right_heuristic(data);
+  // fmt::print("HR: {}\ttime: {}\t{}\n", sr.value(), t_right.elapsed(), sr.isFeasible());
+  // sr.print();
 
   // Run DP Algorithm
   // auto [dp_V, dp_S] = knapsackWithConflicts(arrd_data);
