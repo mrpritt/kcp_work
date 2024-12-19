@@ -41,7 +41,7 @@ def extract_results(run_info: dict, byte_array: bytes):
     
 def main():
     SETTINGS = DEFAULT_SETTINGS.copy()
-    SETTINGS['threads'] = 4
+    SETTINGS['threads'] = 8
 
     KiwiRunner = Kiwi(SETTINGS)
     files = glob.glob('/home/gustavo/ic2024/data/set2/C15/*')
@@ -49,7 +49,7 @@ def main():
     for file in files:
         id = f"{file.split('/')[-1]}"
         exp_name = f"{id}"
-        cmd = f"timeout 10s /home/gustavo/CFS/CFS {file}"
+        cmd = f"timeout 60s /home/gustavo/CFS/CFS {file}"
         exp = Experiment(cmd, exp_name)
         exp.attach_output_handler(extract_results)
         KiwiRunner.add_experiment(exp)
