@@ -29,7 +29,7 @@ def extract_results(run_info: dict, byte_array: bytes):
     run_info['@weight'] = 0
     run_info['@time'] = 0
     run_info['@test'] = False
-    output = byte_array.decode()
+    output = re.sub(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])', '', byte_array.decode())
     pattern = r"\[w:(\d+),([0-9.]+)s\]"
     for line in output.splitlines():
         match = re.match(pattern, line)
