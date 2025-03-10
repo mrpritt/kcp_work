@@ -74,6 +74,7 @@ int main(int argc, char **argv) {
 
   string filename = argv[1];
   KnapsackData data = parseAMPLFile(filename);
+  // KnapsackData data = read_knapsack_data(filename);
 
   // heuristic linear arrangement to minimize conflict distances
   // auto conflicts = pairs2vv(data.n, data.pairs);
@@ -85,7 +86,7 @@ int main(int argc, char **argv) {
   // auto arrd_data = arrange_data(linarr, data);
 
   // Run solver comparison
-  // solver_cmp(data);
+  solver_cmp(data);
 
   // timer t_solver;
   // KPCModel kpc_model(data);
@@ -94,10 +95,10 @@ int main(int argc, char **argv) {
   // fmt::print("KPC: {}\ttime: {}\n", kpc_v, t_solver.elapsed());
   // kpc_s.print();
 
-  timer t_left;
-  Solution sl = left_heuristic(data);
-  fmt::print("HL: {}\ttime: {}\n", sl.value(), t_left.elapsed());
-  sl.print();
+  // timer t_left;
+  // Solution sl = left_heuristic(data);
+  // fmt::print("HL: {}\ttime: {}\n", sl.value(), t_left.elapsed());
+  // sl.print();
 
   // timer t_right;
   // Solution sr = right_heuristic(data);
