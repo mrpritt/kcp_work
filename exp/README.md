@@ -1,5 +1,3 @@
-In order to run exp.py, Kiwi must be installed (personal repo).
-
 # What's here
 
 We compare two algorithms:

@@ -47,12 +47,12 @@ def main():
     SETTINGS['threads'] = 4
 
     KiwiRunner = Kiwi(SETTINGS)
-    files = glob.glob('/home/gustavo/ic2024/data/set2/C15/*.bz2')[4:8]
+    files = glob.glob('/home/gustavo/ic2024/kpc/benchmark/*.ampl')
 
     for file in files:
         id = f"{file.split('/')[-1]}"
         exp_name = f"{id}"
-        args = f"bash -c 'timeout 6s /home/gustavo/mcqdw/release/tools/misc/maxcliquedynweight --graph_file <(bzcat {file}) --strategy kpc'"
+        args = f"bash -c 'timeout 60s /home/gustavo/mcqdw/release/tools/misc/maxcliquedynweight --graph_file {file} --strategy kpc'"
         exp = Experiment(args, exp_name)
         exp.attach_output_handler(extractor)
         KiwiRunner.add_experiment(exp)
