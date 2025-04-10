@@ -8,11 +8,11 @@ import time
 from kiwi import BaseReporter, Kiwi, Experiment, DEFAULT_SETTINGS, JSONReporter, gen_extractor
 
 # To edit cmd args must go below
-EXEC='~/mcqdw/bin/combo_ub'
+EXEC='~/mcqdw/bin/mcqdw'
 FILE_GLOB='/home/gustavo/ic2024/kpc/benchmark/*.ampl'
-MAX_TIME=6
+MAX_TIME=60
 THREADS=4
-OUT_FILE='benchmark_combo_ub60.csv'
+OUT_FILE='benchmark_mcqdw60.csv'
 
 pattern = r"(?:Size = (\d+) Vertices = \[.*?\] Weight = (\d+) n = (\d+) ncw = (\d+) cb = ([\d.]+) kb = ([\d.]+) rb = ([\d.]+))|(?:Time = (\d+) ms)"
 matcher = [

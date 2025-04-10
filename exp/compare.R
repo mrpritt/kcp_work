@@ -1,10 +1,10 @@
 library("ggplot2")
 
 # === Parameters to change ===
-file <- "benchmark.csv"
-algo1 <- "mcqdw"
-algo2 <- "combo_ub"
-metric1 <- "nodes"
+file <- "benchmark60.csv"
+algo1 <- "rlx_ub"
+algo2 <- "mcqdw"
+metric1 <- "time"
 metric2 <- metric1
 # ============================
 
