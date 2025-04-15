@@ -14,29 +14,36 @@ df <- read.csv(file)
 # Reshape wide by algorithm
 df <- reshape(df, idvar = "instance", timevar = "algo", direction = "wide")
 
-# Dynamically build column names
-col1 <- paste0(metric1, ".", algo1)
-col2 <- paste0(metric2, ".", algo2)
+compare2 = function(df, algo1, algo2) {
 
-# Filter out zeros in both metrics (to avoid log10 issues)
-df <- df[df[[col1]] != 0 & df[[col2]] != 0, ]
+  # Dynamically build column names
+  col1 <- paste0(metric1, ".", algo1)
+  col2 <- paste0(metric2, ".", algo2)
+  
+  # Filter out zeros in both metrics (to avoid log10 issues)
+  ef <- df[df[[col1]] != 0 & df[[col2]] != 0, ]
+  
+  # Plot comparison
+  p = ggplot(ef, aes(x = .data[[col1]], y = .data[[col2]])) +
+    geom_point() +
+    geom_abline() +
+    scale_x_log10(limits = c(1, NA)) +
+    scale_y_log10(limits = c(1, NA)) +
+    coord_fixed() +
+    xlab(paste(metric1, algo1, sep = " - ")) +
+    ylab(paste(metric2, algo2, sep = " - ")) +
+    ggtitle(paste("Comparison of", metric1, "and", metric2, "between", algo1, "and", algo2))
+  
+  # Compute ratio and show
+  ef$ratio <- (ef[[col1]] - ef[[col2]]) / ef[[col1]]
+  i_by_ratio <- ef[, c("instance", "ratio")]
+  i_by_ratio
+  print(mean(i_by_ratio$ratio))
 
-# Plot comparison
-ggplot(df, aes(x = .data[[col1]], y = .data[[col2]])) +
-  geom_point() +
-  geom_abline() +
-  scale_x_log10(limits = c(1, NA)) +
-  scale_y_log10(limits = c(1, NA)) +
-  coord_fixed() +
-  xlab(paste(metric1, algo1, sep = " - ")) +
-  ylab(paste(metric2, algo2, sep = " - ")) +
-  ggtitle(paste("Comparison of", metric1, "and", metric2, "between", algo1, "and", algo2))
+  p
+}
 
-# Compute ratio and show
-df$ratio <- (df[[col1]] - df[[col2]]) / df[[col1]]
-i_by_ratio <- df[, c("instance", "ratio")]
-i_by_ratio
-mean(i_by_ratio$ratio)
+compare2(df, "mcqdw", "combo")
 
 ################################################################################
 
