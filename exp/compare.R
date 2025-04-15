@@ -14,7 +14,7 @@ df <- read.csv(file)
 # Reshape wide by algorithm
 df <- reshape(df, idvar = "instance", timevar = "algo", direction = "wide")
 
-compare2 = function(df, algo1, algo2) {
+compare2 = function(df, algo1, algo2, metric1, metric2) {
 
   # Dynamically build column names
   col1 <- paste0(metric1, ".", algo1)
@@ -43,7 +43,8 @@ compare2 = function(df, algo1, algo2) {
   p
 }
 
-compare2(df, "mcqdw", "combo")
+compare2(df, "mcqdw", "rlx_ub", "time", "time")
+compare2(df, "mcqdw", "rlx_ub", "nodes", "nodes")
 
 ################################################################################
 
