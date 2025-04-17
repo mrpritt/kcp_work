@@ -8,7 +8,7 @@ from kiwi import BaseReporter, Kiwi, Experiment, DEFAULT_SETTINGS, gen_extractor
 # To edit cmd args must go below
 EXEC='~/kcp_work/bin/CFS'
 FILE_GLOB='/home/gustavo/ic2024/data/set2/R15/*.bz2'
-MAX_TIME=6
+MAX_TIME=600
 THREADS=4
 OUT_FILE='R15-CFS600.csv'
 
@@ -18,19 +18,21 @@ class Reporter(BaseReporter):
     def generate(results: list[dict]):
         report_id = time.time_ns()
         with open(f"{OUT_FILE}", "w") as f:
-            f.write("instance;weight;time\n")
+            f.write("instance;weight;time;steps\n")
             for exp in results:
                 for run in exp['_runs']:
                     row = f"{exp['name']};"
                     row += f"{run['@weight']};"
-                    row += f"{run['@time']}"
+                    row += f"{run['@time']};"
+                    row += f"{run['@steps']}"
                     row += "\n"
                     f.write(row)
 
-pattern = r"\[w:(\d+),([0-9.eE+-]+)s\]"
+pattern = r"(?:\[w:(\d+),([0-9.eE+-]+)s\])|(?:nSteps: (\d+))"
 matcher = [
     ('@weight', int, 0),
     ('@time', float, 0),
+    ('@steps', int, 0)
 ]
 extractor = gen_extractor(pattern, matcher)
 
@@ -39,7 +41,7 @@ def main():
     SETTINGS['threads'] = THREADS
 
     KiwiRunner = Kiwi(SETTINGS)
-    files = glob.glob(FILE_GLOB)[:12]
+    files = glob.glob(FILE_GLOB)
 
     for file in files:
         id = f"{file.split('/')[-1]}"
