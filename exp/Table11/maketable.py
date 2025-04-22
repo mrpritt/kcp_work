@@ -25,12 +25,15 @@ def process_file(file_path, algo_name, class_name):
     df['type'] = df['instance'].apply(extract_type)
     df['solved'] = df[columns_map['weight']] > 0
     df['steps'] = df[columns_map['steps']]
-    df['time'] = df[columns_map['time']]
+    if algo_name == 'rlx':
+        df['time'] = df[columns_map['time']]/1000
+    else:
+        df['time'] = df[columns_map['time']]
 
     grouped = df.groupby('type').agg(
         solved=('solved', 'sum'),
-        time=('time', 'sum'),
-        steps=('steps', 'sum')
+        time=('time', 'mean'),
+        steps=('steps', 'mean')
     ).reset_index()
 
     grouped['algo'] = algo_name
@@ -39,7 +42,7 @@ def process_file(file_path, algo_name, class_name):
 
 def extract_info_from_filename(filename):
     base = os.path.basename(filename)
-    match = re.match(r'(C\d+)-([A-Za-z]+)\d*\.csv', base)
+    match = re.match(r'(C\d+)-([A-Za-z_]+)\d*\.csv', base)
     if match:
         class_name = match.group(1)
         algo_name = match.group(2)
@@ -62,4 +65,45 @@ for file in csv_files:
 
 # 📝 Save final combined CSV
 final_df = pd.concat(results)
-final_df.to_csv('aggregated_all_algos_with_class.csv', index=False)
+final_df.to_csv('table11.csv', index=False)
+
+############################# LATEX ######################################
+df = final_df.copy()
+# Pivot the table so we get a multi-column view per algorithm
+pivot = df.pivot_table(
+    index=["class", "type"],
+    columns="algo",
+    values=["solved", "time", "steps"]
+)
+
+# Flatten the MultiIndex columns
+pivot.columns = [f"{metric}-{algo}" for metric, algo in pivot.columns]
+pivot = pivot.reset_index()
+
+# Round values for presentation (like the image: int for solved/steps, 1 decimal for time)
+for col in pivot.columns:
+    if col.startswith("solved") or col.startswith("steps"):
+        pivot[col] = pivot[col].round(0).astype(int)
+    elif col.startswith("time"):
+        pivot[col] = pivot[col].round(1)
+
+# Reorder columns (adjust based on your actual algorithm names)
+ordered_cols = [
+    "class", "type",
+    "solved-CFS", "time-CFS", "steps-CFS",
+    "solved-rlx", "time-rlx", "steps-rlx"
+]
+pivot = pivot[[col for col in ordered_cols if col in pivot.columns]]
+
+# Generate LaTeX code
+latex = pivot.to_latex(
+    index=False,
+    escape=False,
+    column_format="ll" + "rrr" * ((len(pivot.columns) - 2) // 3),
+    float_format='%.1f',
+    multicolumn=True,
+    multicolumn_format="c"
+)
+with open("table.tex", "w") as f:
+    f.write(latex)
+
