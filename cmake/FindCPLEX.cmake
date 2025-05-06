@@ -1,4 +1,3 @@
-# Try to find the CPLEX, Concert, IloCplex and CP Optimizer libraries.
 #
 # Once done this will add the following imported targets:
 #
@@ -43,7 +42,7 @@ else ()
    # Amended for VS and its various toolsets
   # https://cmake.org/cmake/help/v3.11/variable/MSVC_VERSION.html
   # Can use GREATER_EQUAL instead of the mess below if cmake version >= 3.7
-  if(NOT (MSVC_VERSION LESS 1910)) 
+  if(NOT (MSVC_VERSION LESS 1910))
 	set(CPLEX_LIB_PATH_SUFFIXES lib/${CPLEX_ARCH}_windows_vs2017/stat_mda)
     set(CPLEX_LIB_PATH_SUFFIXES_DEBUG lib/${CPLEX_ARCH}_windows_vs2017/stat_mdd)
   elseif (NOT (MSVC_VERSION LESS 1900)) # to support VS2015 with 2013 libraries change below
@@ -88,7 +87,7 @@ else()
 endif ()
 
 # On windows, CPLEX 12.10 brought a big semplification in terms of libraries:
-# only one version is used for VS2015, 2017 and 2019 due to the maintained 
+# only one version is used for VS2015, 2017 and 2019 due to the maintained
 # ABI compatibility. Therefore, override the directory
 if(MSVC AND (NOT "${CPXVERSION}" STREQUAL ""))
   if(NOT(${CPXVERSION} LESS 1210))
