@@ -4,6 +4,9 @@ set(MY_PROJECT_NAME kcp)
 project(${MY_PROJECT_NAME})
 
 ######## Cplex Dependency
+if(DEFINED ENV{CPLEX_ROOT_DIR})
+    set(CPLEX_STUDIO_DIR $ENV{CPLEX_ROOT_DIR} CACHE PATH "CPLEX root directory from environment")
+endif()
 find_package(CPLEX REQUIRED)
 if(CPLEX_FOUND)
     include_directories(${CPLEX_INCLUDE_DIR})
