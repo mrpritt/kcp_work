@@ -1,4 +1,3 @@
-#include <fmt/core.h>
 #include <fstream>
 #include <iostream>
 #include <numeric>
@@ -7,6 +6,7 @@
 using namespace std;
 
 #define FMT_HEADER_ONLY
+#include <fmt/core.h>
 #include "fmt/format.h"
 
 #include "kpc.hpp"
