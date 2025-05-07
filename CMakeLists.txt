@@ -28,8 +28,17 @@ if(CPLEX_CP_FOUND)
     link_directories(${CPLEX_CP_LIBRARY})
 endif()
 
+set(FMT_SEARCH_PATHS ${CMAKE_SOURCE_DIR} $ENV{HOME}/Home/Software/fmt/include ../3rd/fmt/include)
+find_path(FMT_INCLUDE_DIR fmt/core.h PATHS ${FMT_SEARCH_PATHS} NO_DEFAULT_PATH)
 
-######## Complier message
+if (FMT_INCLUDE_DIR)
+  message(STATUS "fmtlib found at ${FMT_INCLUDE_DIR}.")
+  include_directories(${FMT_INCLUDE_DIR})
+else()
+  message(FATAL_ERROR "fmtlib not found. Please install fmtlib or set FMT_SEARCH_PATHS.")
+endif()
+
+
 set(CMAKE_BUILD_TYPE Release)
 message(STATUS "System: ${CMAKE_SYSTEM}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
