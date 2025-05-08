@@ -13,8 +13,8 @@ private:
 public:
   Solution(const KnapsackData &);
   Solution(const std::vector<float> &, const KnapsackData &);
-  bool operator[](size_t idx) { return s_[idx]; };
-  void set(size_t idx, bool v) { s_[idx] = v; };
+  bool operator[](std::size_t idx) { return s_[idx]; };
+  void set(std::size_t idx, bool v) { s_[idx] = v; };
   int value();
   int weight();
   bool isFeasible();
