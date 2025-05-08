@@ -2,9 +2,9 @@ library(tidyverse)
 
 
 # Read files
-files = list.files(pattern = "C.*\\.csv")
+files <- list.files(pattern = "C.*\\.csv")
 
-df = files |>
+df <- files |>
       set_names(basename) |>
       map(\(file) read_delim(file, delim = ";")) |>
       list_rbind(names_to = "filename") |>
@@ -23,3 +23,4 @@ df = files |>
       select(class, mult, type, density, weight, nodes, time, algo, time_limit)
 
 df
+df |> write_csv("table11.csv")
