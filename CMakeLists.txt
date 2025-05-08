@@ -31,6 +31,10 @@ endif()
 set(FMT_SEARCH_PATHS ${CMAKE_SOURCE_DIR} $ENV{HOME}/Home/Software/fmt/include ../3rd/fmt/include)
 find_path(FMT_INCLUDE_DIR fmt/core.h PATHS ${FMT_SEARCH_PATHS} NO_DEFAULT_PATH)
 
+if (NOT FMT_INCLUDE_DIR)
+  find_path(FMT_INCLUDE_DIR fmt/core.h)
+endif()
+
 if (FMT_INCLUDE_DIR)
   message(STATUS "fmtlib found at ${FMT_INCLUDE_DIR}.")
   include_directories(${FMT_INCLUDE_DIR})
