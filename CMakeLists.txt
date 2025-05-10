@@ -49,9 +49,9 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Compiler version: ${CMAKE_CXX_COMPILER_VERSION}")
 
 ######## Set output directories.
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build//bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build/bin)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 ######## Set C++ 11 standard
 include(CheckCXXCompilerFlag)
@@ -72,8 +72,10 @@ add_executable(${MY_PROJECT_NAME} src/timer.cpp src/logging.cpp src/utils.cpp sr
 add_executable(cplex_kpc src/cplex_kpc.cpp src/timer.cpp src/logging.cpp src/utils.cpp src/model.cpp src/solution.cpp)
 add_executable(cplex_mwis src/cplex_mwis.cpp src/timer.cpp src/logging.cpp src/utils.cpp src/model.cpp src/solution.cpp)
 add_executable(hl src/run_hl.cpp src/timer.cpp src/logging.cpp src/utils.cpp src/model.cpp src/heuristic.cpp src/solution.cpp)
+add_executable(ubl2 src/ubl2.cpp src/utils.cpp src/model.cpp)
 ######## Add Dependency Library
 target_link_libraries(${MY_PROJECT_NAME} cplex-library cplex-concert ilocplex cplex-cp)
 target_link_libraries(cplex_kpc cplex-library cplex-concert ilocplex cplex-cp)
 target_link_libraries(cplex_mwis cplex-library cplex-concert ilocplex cplex-cp)
 target_link_libraries(hl cplex-library cplex-concert ilocplex cplex-cp)
+target_link_libraries(ubl2 cplex-library cplex-concert ilocplex cplex-cp)
