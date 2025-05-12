@@ -1,6 +1,7 @@
 #include "model.hpp"
 
 #include "kpc.hpp"
+#include "utils.hpp"
 #include <ilcplex/ilocplex.h>
 
 Model::Model() {
@@ -109,6 +110,37 @@ void KPCModel::defineObjective(const KnapsackData &data) {
 }
 
 /*
+ * ILP2
+ */
+void ILP2::defineVariables(const KnapsackData &data) {
+  x_ = IloNumVarArray(*env_, data.n, 0.0, 1.0, ILOINT);
+}
+
+void ILP2::defineConstraints(const KnapsackData &data) {
+  std::vector<std::vector<int>> adj = pairs2vv(data.n, data.pairs);
+  IloExpr expr(*env_);
+  for (int i = 0; i < data.n; ++i)
+    expr += data.w[i] * x_[i];
+  model_->add(expr <= data.W);
+  expr.end();
+
+  IloExpr conflictExpr(*env_);
+  for (int i = 0; i < data.n; ++i) {
+    conflictExpr.clear();
+    for (int j : adj[i]) conflictExpr += x_[j];
+    model_->add(conflictExpr <= (data.n - 1) * (1 - x_[i]));
+  }
+  conflictExpr.end();
+}
+
+void ILP2::defineObjective(const KnapsackData &data) {
+  IloExpr expr(*env_);
+  for (int i = 0; i < data.n; ++i)
+    expr += data.p[i] * x_[i];
+  model_->add(IloMaximize(*env_, expr));
+}
+
+/*
  * MWISModel
  */
 void MWISModel::defineVariables(const KnapsackData &data) {
@@ -147,6 +179,37 @@ void LPKPCModel::defineConstraints(const KnapsackData &data) {
 }
 
 void LPKPCModel::defineObjective(const KnapsackData &data) {
+  IloExpr expr(*env_);
+  for (int i = 0; i < data.n; ++i)
+    expr += data.p[i] * x_[i];
+  model_->add(IloMaximize(*env_, expr));
+}
+
+/*
+ * LP2
+ */
+void LP2::defineVariables(const KnapsackData &data) {
+  x_ = IloNumVarArray(*env_, data.n, 0.0, 1.0, ILOFLOAT);
+}
+
+void LP2::defineConstraints(const KnapsackData &data) {
+  std::vector<std::vector<int>> adj = pairs2vv(data.n, data.pairs);
+  IloExpr expr(*env_);
+  for (int i = 0; i < data.n; ++i)
+    expr += data.w[i] * x_[i];
+  model_->add(expr <= data.W);
+  expr.end();
+
+  IloExpr conflictExpr(*env_);
+  for (int i = 0; i < data.n; ++i) {
+    conflictExpr.clear();
+    for (int j : adj[i]) conflictExpr += x_[j];
+    model_->add(conflictExpr <= (data.n - 1) * (1 - x_[i]));
+  }
+  conflictExpr.end();
+}
+
+void LP2::defineObjective(const KnapsackData &data) {
   IloExpr expr(*env_);
   for (int i = 0; i < data.n; ++i)
     expr += data.p[i] * x_[i];

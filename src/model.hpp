@@ -55,6 +55,16 @@ public:
   KPCModel(const KnapsackData &data) : Model() { build(data); };
 };
 
+class ILP2 : public Model {
+protected:
+  void defineVariables(const KnapsackData &data) override;
+  void defineConstraints(const KnapsackData &data) override;
+  void defineObjective(const KnapsackData &data) override;
+
+public:
+  ILP2(const KnapsackData &data) : Model() { build(data); };
+};
+
 class MWISModel : public Model {
 protected:
   void defineVariables(const KnapsackData &data) override;
@@ -73,6 +83,16 @@ protected:
 
 public:
   LPKPCModel(const KnapsackData &data) : Model() { build(data); };
+};
+
+class LP2 : public Model {
+protected:
+  void defineVariables(const KnapsackData &data) override;
+  void defineConstraints(const KnapsackData &data) override;
+  void defineObjective(const KnapsackData &data) override;
+
+public:
+  LP2(const KnapsackData &data) : Model() { build(data); };
 };
 
 #endif
