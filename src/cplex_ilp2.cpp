@@ -35,9 +35,10 @@ int main(int argc, char **argv) {
   timer t_solver;
   ILP2 kpc_model(data);
   auto [kpc_v, kpc_x, kpc_status] = kpc_model.solve();
-  Solution kpc_s(kpc_x, data);
-  fmt::print("KPC: {}\ttime: {}\n", kpc_v, t_solver.elapsed());
-  kpc_s.print();
+  // Solution kpc_s(kpc_x, data);
+  // fmt::print("KPC: {}\ttime: {}\n", kpc_v, t_solver.elapsed());
+  // kpc_s.print();
+  fmt::print("{}\n", kpc_v);
 
   return 0;
 }
