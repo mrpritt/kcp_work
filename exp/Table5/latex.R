@@ -14,15 +14,15 @@ df <- df |>
 summary_df <- df %>%
   group_by(class, mult, type) %>%
   summarise(
-    lp2 = mean(lp2),
-    ub_l2 = mean(ub_l2),
-    ub_l2g = mean(ub_l2g),
+    lp2 = 100 * mean(lp2),
+    ub_l2 = 100 * mean(ub_l2),
+    ub_l2g = 100 * mean(ub_l2g),
     .groups = "drop"
   )
 
 summary_df
 
-kable(summary_df, na = "-", format = "latex", booktabs = TRUE, linesep = c("", "", "", "\\addlinespace")) %>%
+kable(summary_df, na = "-", format = "latex", digits = 1, booktabs = TRUE, linesep = c("", "", "", "\\addlinespace")) %>%
   kable_styling(latex_options = c("hold_position", "scale_down")) %>%
   writeLines("table.tex")
 
