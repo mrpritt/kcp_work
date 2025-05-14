@@ -90,30 +90,28 @@ int main(int argc, char **argv) {
   for (int j = 0; j < data.n; j++) {
     // create P(V-hacek) from `cliques`
     Partition P;
-    for (int i = 0; i < cliques.size(); i++) {
-      vector<int> C;
-      for(auto e : cliques[i])
-        if (e <= j)
-          C.push_back(e);
-      if (C.size() > 0)
-        P.push_back(C);
+    for(const auto & C : cliques) {
+      vector<int> C_;
+      for(auto e : C)
+        if (e >= j)
+          C_.push_back(e);
+      if (C_.size() > 0)
+        P.push_back(C_);
     }
 
     // DP MCKP
     vector<int> prev(data.W + 1, 0);
     vector<int> curr(data.W + 1, 0);
 
-    for (int l = 0; l < cliques.size(); l++) {
+    for (int l = 0; l < P.size(); l++) {
       for (int s = 0; s <= data.W; s++) {
-        int max_c = 0;
-        for (int i = 0; i < cliques[l].size(); i++) {
-          int wi = data.w[cliques[l][i]];
-          int pi = data.p[cliques[l][i]];
-          if (wi <= s) {
-            max_c = max(max_c, prev[s - wi] + pi);
-          }
+        int max_c = prev[s];
+        for(auto e : P[l]) {
+          const int wi = data.w[e];
+          if (wi <= s)
+            max_c = max(max_c, prev[s - wi] + data.p[e]);
         }
-        curr[s] = max(max_c, prev[s]);
+        curr[s] = max_c;
       }
       prev.swap(curr);
     }
