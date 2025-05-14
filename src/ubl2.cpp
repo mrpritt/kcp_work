@@ -84,11 +84,20 @@ int main(int argc, char **argv) {
   vector<vector<int>> UB_L2(data.n);
 
   // Greedy Clique Partition
-  vector<vector<int>> cliques;
+  Partition cliques;
   create_cliques_coniglio(data.n, cliques, adj);
 
   for (int j = 0; j < data.n; j++) {
-    // TBD: create P(V-hacek) from `cliques`
+    // create P(V-hacek) from `cliques`
+    Partition P;
+    for (int i = 0; i < cliques.size(); i++) {
+      vector<int> C;
+      for(auto e : cliques[i])
+        if (e <= j)
+          C.push_back(e);
+      if (C.size() > 0)
+        P.push_back(C);
+    }
 
     // DP MCKP
     vector<int> prev(data.W + 1, 0);
