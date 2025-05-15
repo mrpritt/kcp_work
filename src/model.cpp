@@ -1,12 +1,15 @@
 #include "model.hpp"
 
-#include "kpc.hpp"
-#include "utils.hpp"
 #include <ilcplex/ilocplex.h>
 
+#include "kpc.hpp"
+#include "utils.hpp"
+
+using namespace std;
+
 Model::Model() {
-  env_ = std::make_unique<IloEnv>();
-  model_ = std::make_unique<IloModel>(*env_);
+  env_ = make_unique<IloEnv>();
+  model_ = make_unique<IloModel>(*env_);
   solver_ = IloCplex(*model_);
   solver_.setParam(IloCplex::Param::Threads, 1);
   solver_.setOut(env_->getNullStream());
@@ -20,12 +23,12 @@ void Model::build(const KnapsackData &data) {
   defineObjective(data);
 }
 
-std::tuple<double, std::vector<float>, IloAlgorithm::Status> Model::solve() {
+tuple<double, vector<float>, IloAlgorithm::Status> Model::solve() {
   const unsigned n = x_.getSize();
 
   solver_.solve();
 
-  std::vector<float> S(n, 0.0);
+  vector<float> S(n, 0.0);
   IloAlgorithm::Status status = solver_.getStatus();
 
   if (status == IloAlgorithm::Feasible || status == IloAlgorithm::Optimal) {
@@ -34,11 +37,11 @@ std::tuple<double, std::vector<float>, IloAlgorithm::Status> Model::solve() {
     for (auto i = 0u; i < n; ++i)
       S[i] = xvalue[i];
   } else
-    std::cout << "No feasible solution." << std::endl;
+    cout << "No feasible solution." << endl;
   return {solver_.getObjValue(), S, status};
 }
 
-void Model::exportModel(const std::string &filename) {
+void Model::exportModel(const string &filename) {
   solver_.exportModel(filename.c_str());
 }
 
@@ -117,20 +120,22 @@ void ILP2::defineVariables(const KnapsackData &data) {
 }
 
 void ILP2::defineConstraints(const KnapsackData &data) {
-  std::vector<std::vector<int>> adj = pairs2vv(data.n, data.pairs);
+  vector<vector<int>> adj = pairs2vv(data.n, data.pairs);
   IloExpr expr(*env_);
   for (int i = 0; i < data.n; ++i)
     expr += data.w[i] * x_[i];
   model_->add(expr <= data.W);
   expr.end();
 
+#if 1
   IloExpr conflictExpr(*env_);
   for (int i = 0; i < data.n; ++i) {
     conflictExpr.clear();
     for (int j : adj[i]) conflictExpr += x_[j];
-    model_->add(conflictExpr <= (data.n - 1) * (1 - x_[i]));
+    model_->add(conflictExpr <= adj[i].size() * (1 - x_[i]));
   }
   conflictExpr.end();
+#endif
 }
 
 void ILP2::defineObjective(const KnapsackData &data) {
@@ -193,7 +198,7 @@ void LP2::defineVariables(const KnapsackData &data) {
 }
 
 void LP2::defineConstraints(const KnapsackData &data) {
-  std::vector<std::vector<int>> adj = pairs2vv(data.n, data.pairs);
+  vector<vector<int>> adj = pairs2vv(data.n, data.pairs);
   IloExpr expr(*env_);
   for (int i = 0; i < data.n; ++i)
     expr += data.w[i] * x_[i];
@@ -204,7 +209,7 @@ void LP2::defineConstraints(const KnapsackData &data) {
   for (int i = 0; i < data.n; ++i) {
     conflictExpr.clear();
     for (int j : adj[i]) conflictExpr += x_[j];
-    model_->add(conflictExpr <= (data.n - 1) * (1 - x_[i]));
+    model_->add(conflictExpr <= adj[i].size() * (1 - x_[i]));
   }
   conflictExpr.end();
 }
