@@ -1,0 +1,31 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{subfig}
+\usepackage{float}
+\usepackage{longtable}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{booktabs}
+
+\begin{document}
+
+\begin{align*}
+\mathrm{UB}_{L2} &= g(\alpha_1, c(\hat{V})) \\
+\mathrm{UB}_{L3} &= \max\left\{g(\alpha_2, c(\hat{V}) - w_{\alpha_1}) + p_{\alpha_1},\ g(\alpha_2, c(\hat{V}))\right\} \\
+\mathrm{UB}_{L4} &= \min\left\{\mathrm{UB}_{L2},\ \mathrm{UB}_{L3}\right\} \\
+\mathrm{UB}_{L5} &= \mathrm{UB}_{L3}(\hat{V}') : \hat{V}' = \hat{V} - N(\alpha_1) \\
+\mathrm{UB}_{L6} &= \min\left\{\mathrm{UB}_{L2},\ \mathrm{UB}_{L5}\right\}
+\end{align*}
+
+\input{ub_l2_v}
+
+\input{ub_l2_v_ff}
+
+\input{ub_l2_i}
+
+\input{ub_l2_i_ff}
+
+\end{document}
