@@ -12,6 +12,7 @@ ub_l2_v <- read_csv("ub_l2_v.csv")
 ub_l2_v_ff <- read_csv("ub_l2_v_ff.csv")
 ub_l2_i <- read_csv("ub_l2_i.csv")
 ub_l2_i_ff <- read_csv("ub_l2_i_ff.csv")
+ub_l2_v_ffr <- read_csv("ub_l2_v_ffr.csv")
 
 ## Table \hat{V} = V, Coniglio non-decreasing pi/wi
 table_v <- ilp2 |>
@@ -74,7 +75,7 @@ kable(
   table_v_ff_summary,
   format = "latex",
   caption = "$\\hat{V} = V$, Greedy first-fit non-increasing",
-  label = "ub_l2_v",
+  label = "ub_l2_v_ff",
   digits = 1,
   booktabs = TRUE,
   linesep = c("", "", "", "\\addlinespace")
@@ -139,3 +140,38 @@ kable(
 ) %>%
   kable_styling(latex_options = c("hold_position", "scale_down")) %>%
   writeLines("ub_l2_i_ff.tex")
+
+
+## Table \hat{V} = V, Greedy first-fit non-increasing pi/wi repeated at each iteration
+table_v_ffr <- ilp2 |>
+  inner_join(lp2, by = inst_cols) |>
+  inner_join(ub_l2_v_ffr, by = inst_cols)
+
+
+table_v_ffr <- table_v_ffr %>%
+  mutate(
+    lp2 = abs(lp2 - ilp2) / ilp2 * 100,
+    across(starts_with("ub_"), ~ abs(.x - ilp2) / ilp2 * 100)
+  )
+
+table_v_ffr_summary <- table_v_ffr %>%
+  group_by(class, mult, type) %>%
+  summarise(
+    lp2 = mean(lp2),
+    across(starts_with("ub_"), mean),
+    .groups = "drop"
+  )
+
+table_v_ffr_summary
+
+kable(
+  table_v_ffr_summary,
+  format = "latex",
+  caption = "$\\hat{V} = V$, Greedy first-fit non-increasing repeated at each iteration",
+  label = "ub_l2_v_ffr",
+  digits = 1,
+  booktabs = TRUE,
+  linesep = c("", "", "", "\\addlinespace")
+) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down")) %>%
+  writeLines("ub_l2_v_ffr.tex")
