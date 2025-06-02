@@ -175,3 +175,34 @@ kable(
 ) %>%
   kable_styling(latex_options = c("hold_position", "scale_down")) %>%
   writeLines("ub_l2_v_ffr.tex")
+
+## Bound comparison
+df <- read_csv("data.csv")
+
+df <- df %>%
+  mutate(
+    lp2 = abs(lp2 - ilp2) / ilp2 * 100,
+    across(ends_with(".ub_l2"), ~ abs(.x - ilp2) / ilp2 * 100)
+  )
+
+df_summ <- df %>%
+  group_by(class, mult, type) %>%
+  summarise(
+    lp2 = mean(lp2),
+    across(ends_with(".ub_l2"), mean),
+    .groups = "drop"
+  )
+
+df_summ
+
+kable(
+  df_summ,
+  format = "latex",
+  caption = "$\\hat{V} = V$, differing sorting strategies comparison",
+  label = "ub_l2_comp",
+  digits = 1,
+  booktabs = TRUE,
+  linesep = c("", "", "", "\\addlinespace")
+) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down")) %>%
+  writeLines("ub_l2_comp.tex")
