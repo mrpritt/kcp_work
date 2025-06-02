@@ -4,6 +4,7 @@
 #include "kpc.hpp"
 #include <ilcplex/ilocplex.h>
 #include <memory>
+#include <optional>
 #include <vector>
 
 class Model {
@@ -19,7 +20,7 @@ protected:
   virtual void defineObjective(const KnapsackData &data) = 0;
 
 public:
-  Model();
+  Model(std::optional<double> time_limit = std::nullopt);
   std::tuple<double, std::vector<float>, IloAlgorithm::Status> solve();
   void exportModel(const std::string &filename);
   ~Model();
@@ -63,6 +64,19 @@ protected:
 
 public:
   ILP2(const KnapsackData &data) : Model() { build(data); };
+};
+
+class MCC : public Model {
+protected:
+  void defineVariables(const KnapsackData &data) override;
+  void defineConstraints(const KnapsackData &data) override;
+  void defineObjective(const KnapsackData &data) override;
+
+public:
+  MCC(const KnapsackData &data, std::optional<double> time_limit = std::nullopt)
+      : Model(time_limit) {
+    build(data);
+  };
 };
 
 class MWISModel : public Model {

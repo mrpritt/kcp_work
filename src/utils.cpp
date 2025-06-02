@@ -46,7 +46,10 @@ KnapsackData parseAMPLFile(const std::string &filename) {
         int item1, item2;
         std::istringstream pairRow(line);
         pairRow >> item1 >> item2;
-        data.pairs.emplace_back(item1 + 1, item2 + 1);
+        if (item1 < item2)
+          data.pairs.emplace_back(item1 + 1, item2 + 1);
+        else
+          data.pairs.emplace_back(item2 + 1, item1 + 1);
       }
     }
   }
@@ -112,6 +115,26 @@ vector<vector<int>> pairs2vv(int n, const vector<pair<int, int>> &pairs) {
   for (auto pair : pairs) {
     vv[pair.first - 1].push_back(pair.second - 1);
     vv[pair.second - 1].push_back(pair.first - 1);
+  }
+  return vv;
+}
+
+vector<vector<int>> pairs2vb(int n, const vector<pair<int, int>> &pairs) {
+  vector<vector<bool>> adj(n, vector<bool>(n, false));
+  for (auto p : pairs) {
+    adj[p.first - 1][p.second - 1] = true;
+    adj[p.second - 1][p.first - 1] = true;
+  }
+
+  vector<vector<int>> vv(n, vector<int>(n, 0));
+  int sum = 1;
+  for (int i = 0; i < n; i++) {
+    for (int j = i + 1; j < n; j++) {
+      if (adj[i][j]) {
+        vv[i][j] = sum;
+        sum++;
+      }
+    }
   }
   return vv;
 }

@@ -34,6 +34,9 @@ std::vector<bool> arrange_arr(const std::vector<bool> &arr,
 std::vector<std::vector<int>>
 pairs2vv(int n, const std::vector<std::pair<int, int>> &pairs);
 
+std::vector<std::vector<int>>
+pairs2vb(int n, const std::vector<std::pair<int, int>> &pairs);
+
 std::pair<std::vector<int>, int>
 linear_arrangement(const std::vector<std::vector<int>> &conflicts);
 

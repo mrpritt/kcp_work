@@ -1,18 +1,23 @@
 #include "model.hpp"
 
 #include <ilcplex/ilocplex.h>
+#include <optional>
 
 #include "kpc.hpp"
 #include "utils.hpp"
 
 using namespace std;
 
-Model::Model() {
+Model::Model(std::optional<double> time_limit) {
   env_ = make_unique<IloEnv>();
   model_ = make_unique<IloModel>(*env_);
   solver_ = IloCplex(*model_);
   solver_.setParam(IloCplex::Param::Threads, 1);
+  if (time_limit.has_value()) {
+    solver_.setParam(IloCplex::Param::TimeLimit, *time_limit);
+  }
   solver_.setOut(env_->getNullStream());
+  solver_.setWarning(env_->getNullStream());
 }
 
 Model::~Model() { solver_.end(); }
@@ -142,6 +147,49 @@ void ILP2::defineObjective(const KnapsackData &data) {
   IloExpr expr(*env_);
   for (int i = 0; i < data.n; ++i)
     expr += data.p[i] * x_[i];
+  model_->add(IloMaximize(*env_, expr));
+}
+
+/*
+ * MinCut Cliques
+ */
+void MCC::defineVariables(const KnapsackData &data) {
+  x_ = IloNumVarArray(*env_, data.pairs.size(), 0.0, 1.0, ILOINT);
+  model_->add(x_);
+}
+
+void MCC::defineConstraints(const KnapsackData &data) {
+  auto adj = pairs2vb(data.n, data.pairs);
+
+  IloExpr conflictExpr(*env_);
+  for (int i = 0; i < data.n - 2; ++i) {
+    for (int j = i + 1; j < data.n - 1; ++j) {
+      for (int k = j + 1; k < data.n; ++k) {
+        conflictExpr.clear();
+        if (adj[i][j]) conflictExpr += x_[adj[i][j]-1];
+        if (adj[j][k]) conflictExpr += x_[adj[j][k]-1];
+        if (adj[i][k]) conflictExpr -= x_[adj[i][k]-1];
+        model_->add(conflictExpr <= 1);
+        conflictExpr.clear();
+        if (adj[i][j]) conflictExpr += x_[adj[i][j]-1];
+        if (adj[j][k]) conflictExpr -= x_[adj[j][k]-1];
+        if (adj[i][k]) conflictExpr += x_[adj[i][k]-1];
+        model_->add(conflictExpr <= 1);
+        conflictExpr.clear();
+        if (adj[i][j]) conflictExpr -= x_[adj[i][j]-1];
+        if (adj[j][k]) conflictExpr += x_[adj[j][k]-1];
+        if (adj[i][k]) conflictExpr += x_[adj[i][k]-1];
+        model_->add(conflictExpr <= 1);
+      }
+    }
+  }
+  conflictExpr.end();
+}
+
+void MCC::defineObjective(const KnapsackData &data) {
+  IloExpr expr(*env_);
+  for (int i = 0; i < data.pairs.size(); ++i)
+      expr += x_[i];
   model_->add(IloMaximize(*env_, expr));
 }
 
