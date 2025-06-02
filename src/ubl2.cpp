@@ -63,20 +63,14 @@ void create_cliques_coniglio(int n, Partition &cliques, const AdjMatrix &adj) {
   }
 }
 
-int main(int argc, char **argv) {
-
-  string filename = argv[1];
-  KnapsackData data = parseAMPLFile(filename);
-
-  // Reorder in non-increasing efficiency
+vector<vector<int>> coniglio_decreasing(KnapsackData data) {
   vector<int> idx(data.n, 0);
   iota(idx.begin(), idx.end(), 0);
   sort(idx.begin(), idx.end(), [&](int i, int j) {
-    return data.p[i] * data.w[j] < data.p[j] * data.w[i];
+    return data.p[i] * data.w[j] > data.p[j] * data.w[i];
   });
   data = arrange_data(idx, data);
 
-  // Create conflict matrix
   vector<vector<bool>> adj(data.n, vector<bool>(data.n, false));
   for (auto p : data.pairs) {
     adj[p.first - 1][p.second - 1] = true;
@@ -85,13 +79,10 @@ int main(int argc, char **argv) {
 
   vector<vector<int>> UB_L2(data.n);
 
-  // Greedy Clique Partition
   Partition cliques;
   create_cliques_coniglio(data.n, cliques, adj);
-  // create_cliques_greedy_firstfit(data.n, cliques, adj);
 
   for (int j = 0; j < data.n; j++) {
-    // create P(V-hacek) from `cliques`
     Partition P;
     for (const auto &C : cliques) {
       vector<int> C_;
@@ -102,7 +93,6 @@ int main(int argc, char **argv) {
         P.push_back(C_);
     }
 
-    // DP MCKP
     vector<int> prev(data.W + 1, 0);
     vector<int> curr(data.W + 1, 0);
 
@@ -121,6 +111,245 @@ int main(int argc, char **argv) {
     UB_L2[j] = prev;
   }
 
+  return UB_L2;
+
+}
+
+// Conglio reverse profit-over-weight
+vector<vector<int>> coniglio_increasing(KnapsackData data) {
+  vector<int> idx(data.n, 0);
+  iota(idx.begin(), idx.end(), 0);
+  sort(idx.begin(), idx.end(), [&](int i, int j) {
+    return data.p[i] * data.w[j] < data.p[j] * data.w[i];
+  });
+  data = arrange_data(idx, data);
+
+  vector<vector<bool>> adj(data.n, vector<bool>(data.n, false));
+  for (auto p : data.pairs) {
+    adj[p.first - 1][p.second - 1] = true;
+    adj[p.second - 1][p.first - 1] = true;
+  }
+
+  vector<vector<int>> UB_L2(data.n);
+
+  Partition cliques;
+  create_cliques_coniglio(data.n, cliques, adj);
+
+  for (int j = 0; j < data.n; j++) {
+    Partition P;
+    for (const auto &C : cliques) {
+      vector<int> C_;
+      for (auto e : C)
+        if (e >= j)
+          C_.push_back(e);
+      if (C_.size() > 0)
+        P.push_back(C_);
+    }
+
+    vector<int> prev(data.W + 1, 0);
+    vector<int> curr(data.W + 1, 0);
+
+    for (int l = 0; l < P.size(); l++) {
+      for (int s = 0; s <= data.W; s++) {
+        int max_c = prev[s];
+        for (auto e : P[l]) {
+          const int wi = data.w[e];
+          if (wi <= s)
+            max_c = max(max_c, prev[s - wi] + data.p[e]);
+        }
+        curr[s] = max_c;
+      }
+      prev.swap(curr);
+    }
+    UB_L2[j] = prev;
+  }
+
+  return UB_L2;
+
+}
+
+vector<vector<int>> firstfit_decreasing(KnapsackData data) {
+  vector<int> idx(data.n, 0);
+  iota(idx.begin(), idx.end(), 0);
+  sort(idx.begin(), idx.end(), [&](int i, int j) {
+    return data.p[i] * data.w[j] > data.p[j] * data.w[i];
+  });
+  data = arrange_data(idx, data);
+
+  vector<vector<bool>> adj(data.n, vector<bool>(data.n, false));
+  for (auto p : data.pairs) {
+    adj[p.first - 1][p.second - 1] = true;
+    adj[p.second - 1][p.first - 1] = true;
+  }
+
+  vector<vector<int>> UB_L2(data.n);
+
+  Partition cliques;
+  create_cliques_greedy_firstfit(data.n, cliques, adj);
+
+  for (int j = 0; j < data.n; j++) {
+    Partition P;
+    for (const auto &C : cliques) {
+      vector<int> C_;
+      for (auto e : C)
+        if (e >= j)
+          C_.push_back(e);
+      if (C_.size() > 0)
+        P.push_back(C_);
+    }
+
+    vector<int> prev(data.W + 1, 0);
+    vector<int> curr(data.W + 1, 0);
+
+    for (int l = 0; l < P.size(); l++) {
+      for (int s = 0; s <= data.W; s++) {
+        int max_c = prev[s];
+        for (auto e : P[l]) {
+          const int wi = data.w[e];
+          if (wi <= s)
+            max_c = max(max_c, prev[s - wi] + data.p[e]);
+        }
+        curr[s] = max_c;
+      }
+      prev.swap(curr);
+    }
+    UB_L2[j] = prev;
+  }
+
+  return UB_L2;
+
+}
+
+vector<vector<int>> firstfit_increasing(KnapsackData data) {
+  vector<int> idx(data.n, 0);
+  iota(idx.begin(), idx.end(), 0);
+  sort(idx.begin(), idx.end(), [&](int i, int j) {
+    return data.p[i] * data.w[j] < data.p[j] * data.w[i];
+  });
+  data = arrange_data(idx, data);
+
+  vector<vector<bool>> adj(data.n, vector<bool>(data.n, false));
+  for (auto p : data.pairs) {
+    adj[p.first - 1][p.second - 1] = true;
+    adj[p.second - 1][p.first - 1] = true;
+  }
+
+  vector<vector<int>> UB_L2(data.n);
+
+  Partition cliques;
+  create_cliques_greedy_firstfit(data.n, cliques, adj);
+
+  for (int j = 0; j < data.n; j++) {
+    Partition P;
+    for (const auto &C : cliques) {
+      vector<int> C_;
+      for (auto e : C)
+        if (e >= j)
+          C_.push_back(e);
+      if (C_.size() > 0)
+        P.push_back(C_);
+    }
+
+    vector<int> prev(data.W + 1, 0);
+    vector<int> curr(data.W + 1, 0);
+
+    for (int l = 0; l < P.size(); l++) {
+      for (int s = 0; s <= data.W; s++) {
+        int max_c = prev[s];
+        for (auto e : P[l]) {
+          const int wi = data.w[e];
+          if (wi <= s)
+            max_c = max(max_c, prev[s - wi] + data.p[e]);
+        }
+        curr[s] = max_c;
+      }
+      prev.swap(curr);
+    }
+    UB_L2[j] = prev;
+  }
+
+  return UB_L2;
+
+}
+
+vector<vector<int>> mincut(KnapsackData data) {
+  auto vv = pairs2vv(data.n, data.pairs);
+  double alpha = -1.0;
+  vector<int> idx(data.n, 0);
+  iota(idx.begin(), idx.end(), 0);
+  sort(idx.begin(), idx.end(), [&](int i, int j) {
+      return ((double)data.p[i]/data.w[i]) + alpha * ((double)vv[i].size()/data.n) > ((double)data.p[j]/data.w[j]) + alpha * ((double)vv[j].size()/data.n);
+  });
+  data = arrange_data(idx, data);
+
+  vector<vector<bool>> adj(data.n, vector<bool>(data.n, false));
+  for (auto p : data.pairs) {
+    adj[p.first - 1][p.second - 1] = true;
+    adj[p.second - 1][p.first - 1] = true;
+  }
+
+  vector<vector<int>> UB_L2(data.n);
+
+  Partition cliques;
+  create_cliques_greedy_firstfit(data.n, cliques, adj);
+
+  // Partition cliques;
+  // MCC model(data, 60);
+  // auto [mcc_v, mcc_x, mcc_status] = model.solve();
+  // cout << mcc_v << endl;
+  // vector<bool> added(data.n, false);
+  // for (int i = 0; i < data.n; i++) {
+  //   if (!added[i]) {
+  //     cliques.push_back(vector<int>());
+  //     added[i] = true;
+  //     cliques[cliques.size() - 1].push_back(i);
+  //     for (int j = i + 1; j < data.n; j++) {
+  //       if (mcc_x[i*data.n + j]) {
+  //         cliques[cliques.size() - 1].push_back(j);
+  //         added[j] = true;
+  //       }
+  //     }
+  //   }
+  // }
+
+  for (int j = 0; j < data.n; j++) {
+    Partition P;
+    for (const auto &C : cliques) {
+      vector<int> C_;
+      for (auto e : C)
+        if (e >= j)
+          C_.push_back(e);
+      if (C_.size() > 0)
+        P.push_back(C_);
+    }
+
+    vector<int> prev(data.W + 1, 0);
+    vector<int> curr(data.W + 1, 0);
+
+    for (int l = 0; l < P.size(); l++) {
+      for (int s = 0; s <= data.W; s++) {
+        int max_c = prev[s];
+        for (auto e : P[l]) {
+          const int wi = data.w[e];
+          if (wi <= s)
+            max_c = max(max_c, prev[s - wi] + data.p[e]);
+        }
+        curr[s] = max_c;
+      }
+      prev.swap(curr);
+    }
+    UB_L2[j] = prev;
+  }
+
+  return UB_L2;
+
+}
+
+int main(int argc, char **argv) {
+
+  string filename = argv[1];
+  KnapsackData data = parseAMPLFile(filename);
+
   // Upper bounds:
   // * UBL3 = max(UBL2[j2][cV - wj1] + pj1, UBL2[j2][cV])
   // * UBL4 = min(UBL2, UBL3)
@@ -128,24 +357,16 @@ int main(int argc, char **argv) {
   // * UBL6 = min(UBL2, UBL5)
   // double d = (double)data.pairs.size() / ((double)(data.n * (data.n - 1)) / 2);
 
+  // auto UB_L2_CR = coniglio_reverse(data);
+  // auto UB_L2_CS = coniglio_standard(data);
+  // auto UB_L2_FFR = firstfit_reverse(data);
+  // auto UB_L2_FFS = firstfit_standard(data);
+  auto UB_L2_MINCUT = mincut(data);
 
-  // \hat{V} = V
-  int ub_l2_v = UB_L2[0][data.W];
-  int ub_l3_v =
-      max(UB_L2[1][data.W],
-          data.w[0] <= data.W ? UB_L2[1][data.W - data.w[0]] + data.p[0] : 0);
-  int ub_l4_v = min(ub_l2_v, ub_l3_v);
-  // Get first non-neighbour
-  int j = 1;
-  while (adj[0][j] && j < data.n)
-    j += 1;
-  int ub_l5_v =
-      max(UB_L2[j][data.W],
-          data.w[0] <= data.W ? UB_L2[j][data.W - data.w[0]] + data.p[0] : 0);
-  int ub_l6_v = min(ub_l2_v, ub_l5_v);
+  // ILP2 kpc_model(data);
+  // auto [kpc_v, kpc_x, kpc_status] = kpc_model.solve();
 
-  cout << ub_l2_v << "," << ub_l3_v << "," << ub_l4_v << "," << ub_l5_v << ","
-       << ub_l6_v << endl ;
+  cout << UB_L2_MINCUT[0][data.W] << endl;
 
 
 
