@@ -13,6 +13,63 @@ ub_l2_v_ff <- read_csv("ub_l2_v_ff.csv")
 ub_l2_i <- read_csv("ub_l2_i.csv")
 ub_l2_i_ff <- read_csv("ub_l2_i_ff.csv")
 ub_l2_v_ffr <- read_csv("ub_l2_v_ffr.csv")
+ub_l2_weighted <- read_csv("weighted.csv")
+
+table_weighted <- ilp2 |>
+  inner_join(ub_l2_weighted, by = inst_cols) |>
+  mutate(
+    ub_l2 = (ub_l2 - ilp2) / ilp2 * 100,
+    alpha = paste0("alpha_", str_replace(alpha, "-", "m"))
+  )
+
+tmp <- table_weighted |>
+  filter(ascending == 1) |>
+  pivot_wider(
+    names_from = alpha,
+    values_from = ub_l2,
+  ) |>
+  group_by(class, mult, type) |>
+  summarise(
+    across(starts_with("alpha_"), mean),
+    .groups = "drop"
+  )
+
+kable(
+  tmp,
+  format = "latex",
+  caption = "Weighted, ascending",
+  label = "ub_l2_ascend",
+  digits = 1,
+  booktabs = TRUE,
+  linesep = c("", "", "", "\\addlinespace")
+) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down")) %>%
+  writeLines("ub_l2_ascend.tex")
+
+tmp <- table_weighted |>
+  filter(ascending == 0) |>
+  pivot_wider(
+    names_from = alpha,
+    values_from = ub_l2,
+  ) |>
+  group_by(class, mult, type) |>
+  summarise(
+    across(starts_with("alpha_"), mean),
+    .groups = "drop"
+  )
+
+kable(
+  tmp,
+  format = "latex",
+  caption = "Weighted, descending",
+  label = "ub_l2_descend",
+  digits = 1,
+  booktabs = TRUE,
+  linesep = c("", "", "", "\\addlinespace")
+) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down")) %>%
+  writeLines("ub_l2_descend.tex")
+
 
 ## Table \hat{V} = V, Coniglio non-decreasing pi/wi
 table_v <- ilp2 |>

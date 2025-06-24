@@ -272,13 +272,14 @@ vector<vector<int>> firstfit_increasing(KnapsackData data) {
 
 }
 
-vector<vector<int>> mincut(KnapsackData data) {
+vector<vector<int>> weighted(KnapsackData data, double alpha, bool ascending = false) {
   auto vv = pairs2vv(data.n, data.pairs);
-  double alpha = -1.0;
   vector<int> idx(data.n, 0);
   iota(idx.begin(), idx.end(), 0);
   sort(idx.begin(), idx.end(), [&](int i, int j) {
-      return ((double)data.p[i]/data.w[i]) + alpha * ((double)vv[i].size()/data.n) > ((double)data.p[j]/data.w[j]) + alpha * ((double)vv[j].size()/data.n);
+    double val_i = ((double)data.p[i]/data.w[i]) + alpha * ((double)vv[i].size()/data.n);
+    double val_j = ((double)data.p[j]/data.w[j]) + alpha * ((double)vv[j].size()/data.n);
+    return ascending ? val_i < val_j : val_i > val_j;
   });
   data = arrange_data(idx, data);
 
@@ -292,25 +293,6 @@ vector<vector<int>> mincut(KnapsackData data) {
 
   Partition cliques;
   create_cliques_greedy_firstfit(data.n, cliques, adj);
-
-  // Partition cliques;
-  // MCC model(data, 60);
-  // auto [mcc_v, mcc_x, mcc_status] = model.solve();
-  // cout << mcc_v << endl;
-  // vector<bool> added(data.n, false);
-  // for (int i = 0; i < data.n; i++) {
-  //   if (!added[i]) {
-  //     cliques.push_back(vector<int>());
-  //     added[i] = true;
-  //     cliques[cliques.size() - 1].push_back(i);
-  //     for (int j = i + 1; j < data.n; j++) {
-  //       if (mcc_x[i*data.n + j]) {
-  //         cliques[cliques.size() - 1].push_back(j);
-  //         added[j] = true;
-  //       }
-  //     }
-  //   }
-  // }
 
   for (int j = 0; j < data.n; j++) {
     Partition P;
@@ -361,14 +343,13 @@ int main(int argc, char **argv) {
   // auto UB_L2_CS = coniglio_standard(data);
   // auto UB_L2_FFR = firstfit_reverse(data);
   // auto UB_L2_FFS = firstfit_standard(data);
-  auto UB_L2_MINCUT = mincut(data);
-
-  // ILP2 kpc_model(data);
-  // auto [kpc_v, kpc_x, kpc_status] = kpc_model.solve();
-
-  cout << UB_L2_MINCUT[0][data.W] << endl;
-
-
+  double alphas[] = {-3, -2, -1, -0.5, 0.5, 1, 2, 3};
+  for (auto alpha : alphas) {
+    auto UB_L2_MINCUT = weighted(data, alpha, false);
+    cout << UB_L2_MINCUT[0][data.W] << "," << alpha << "," << false << endl;
+    UB_L2_MINCUT = weighted(data, alpha, true);
+    cout << UB_L2_MINCUT[0][data.W] << "," << alpha << "," << true << endl;
+  }
 
   // // \hat{V} = I^*
   // ILP2 kpc_model(data);
