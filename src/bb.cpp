@@ -3,11 +3,13 @@
 #include <algorithm>
 #include <numeric>
 #include <string>
+
+#include "bitscan.h"
+
 using namespace std;
 
 using AdjMatrix = vector<vector<bool>>;
 using Partition = vector<vector<int>>;
-using Item = int;
 using weight_t = int;
 using profit_t = int;
 using Items = vector<int>;
@@ -24,34 +26,66 @@ typedef struct {
 Items I_inc;
 profit_t LB = 0;
 
-profit_t profit(const Items &I) { return 0; }
-weight_t weight(const Items &I) { return 0; }
+// typedef struct {
+//   bitset I;
+//   profit_t p;
+//   weight_t w;
+//   bitset C;
+// } Node;
 
-Items partition(Items v_hat, const Items &I, const KPData &data) {
-  profit_t budget = LB - profit(I);
-  Items B(v_hat.size());
+// PARTITION(n)
+// should_stop = true     # should stop if no items in CC fits in P
+// CC = n.C               # copy of candidates
+// UB_p = 0;              # partition upper bound up until previous clique
+// Pi_s = 0;              # current clique max profit => UB_p + Pi_s = UB_P
+// C = 0                  # current clique being built
+// for i in CC {
+//    if (n.w + w[i] <= c) {
+//        pi_s = max(Pi_s, p[i])
+//        if (C & N[i] == C && 
+//            LB - n.p >= UB_p + pi_s) { # if i forms clique and budget okay
+//            should_stop = false;
+//            Pi_s = pi_s;
+//            CC[i] = 0;
+//            C[i] = 1;
+//        }
+//    } else {        # remove from all successor nodes if item does not fit
+//        CC[i] = 0;
+//        n.C = 0;
+//    }
+// }
+// while (!should_stop && CC > 0) {
+//    UB_p += Pi_s;
+//    C = 0;
+//    Pi_s = 0;
+//    should_stop = true;
+//    for i in CC {
+//        pi_s = max(Pi_s, p[i])
+//        if (C & N[i] == C && 
+//            LB - n.p >= UB_p + pi_s) { # if i forms clique and budget okay
+//            should_stop = false;
+//            Pi_s = pi_s;
+//            CC[i] = 0;
+//            C[i] = 1;
+//        }
+//    }
+// }
+// # Now CC is the branching set
+//
 
-  while (!v_hat.empty()) {
-    auto j = v_hat.pop_back();
-  }
-
-  return B;
-}
-
-Items branch_and_bound(Items v_hat, const KPData &data) {
-  weight_t c_v_hat = data.W - weight(I_inc);
-
-  Items I;
-
-  Items B = partition(v_hat, I, data);
-
-  while (!v_hat.empty()) {
-    Item v = v_hat.back();
-    v_hat.pop_back();
-  }
-
-  return I_inc;
-}
+// BRANCH_AND_BOUND(data)
+// # create root node
+// Q = {r}
+// while (!Q.empty()) {
+//    n = Q.front()
+//    Q.pop()
+//    if (!should_cut(n)) {
+//        B = partition(n);
+//        for i in B {
+//            Q.push(add_item(n, i));
+//        }
+//    }
+// }
 
 int main(int argc, char **argv) {
 
