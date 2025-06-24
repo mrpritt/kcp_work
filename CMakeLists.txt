@@ -3,6 +3,26 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(MY_PROJECT_NAME kcp)
 project(${MY_PROJECT_NAME})
 
+############# Bitscan dependency
+set(BITSCAN_EXTERNAL_DIR "${CMAKE_BINARY_DIR}/external/bitscan")
+
+if(NOT EXISTS "${BITSCAN_EXTERNAL_DIR}/CMakeLists.txt")
+    message(STATUS "Cloning BITSCAN into ${BITSCAN_EXTERNAL_DIR}")
+    execute_process(
+        COMMAND git clone https://github.com/psanse/BITSCAN.git ${BITSCAN_EXTERNAL_DIR}
+        RESULT_VARIABLE GIT_CLONE_RESULT
+    )
+    if(NOT GIT_CLONE_RESULT EQUAL 0)
+        message(FATAL_ERROR "Failed to clone BITSCAN repository")
+    endif()
+endif()
+
+# Make CMake aware of custom modules
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+
+find_package(Bitscan REQUIRED)
+
+
 ######## Cplex Dependency
 if(DEFINED ENV{CPLEX_ROOT_DIR})
     set(CPLEX_STUDIO_DIR $ENV{CPLEX_ROOT_DIR} CACHE PATH "CPLEX root directory from environment")
@@ -76,6 +96,7 @@ add_executable(cplex_lp2 src/cplex_lp2.cpp src/timer.cpp src/logging.cpp src/uti
 add_executable(cplex_lp1 src/cplex_lp1.cpp src/timer.cpp src/logging.cpp src/utils.cpp src/model.cpp src/solution.cpp)
 add_executable(hl src/run_hl.cpp src/timer.cpp src/logging.cpp src/utils.cpp src/model.cpp src/heuristic.cpp src/solution.cpp)
 add_executable(ubl2 src/ubl2.cpp src/utils.cpp src/model.cpp)
+add_executable(bb src/bb.cpp src/utils.cpp)
 ######## Add Dependency Library
 target_link_libraries(${MY_PROJECT_NAME} cplex-library cplex-concert ilocplex cplex-cp)
 target_link_libraries(cplex_kpc cplex-library cplex-concert ilocplex cplex-cp)
@@ -85,3 +106,4 @@ target_link_libraries(cplex_lp2 cplex-library cplex-concert ilocplex cplex-cp)
 target_link_libraries(cplex_lp1 cplex-library cplex-concert ilocplex cplex-cp)
 target_link_libraries(hl cplex-library cplex-concert ilocplex cplex-cp)
 target_link_libraries(ubl2 cplex-library cplex-concert ilocplex cplex-cp)
+target_link_libraries(bb PRIVATE Bitscan::Bitscan)
