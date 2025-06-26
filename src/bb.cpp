@@ -35,6 +35,9 @@ typedef struct {
   bitarray C;
 } Node;
 
+Node I_inc;
+profit_t LB = 0;
+
 // PARTITION(n)
 // should_stop = true     # should stop if no items in CC fits in P
 // CC = n.C               # copy of candidates
@@ -73,22 +76,38 @@ typedef struct {
 //    }
 // }
 // # Now CC is the branching set
-bitarray partition(const Node &n, const KPData &data) {
-  bool should_stop = false;
+bitarray partition(Node &n, const KPData &data) {
+  // BUG: there is a bug here somewhere
+  bool should_stop = true;
   bitarray CC(n.C);
   profit_t UB_p = 0;
   profit_t Pi_s = 0;
-  bitarray C(n.C); // TODO: refactor
-  C.erase_bit();
+  bitarray C(data.n);
+  bitarray tmp(data.n);
 
   CC.init_scan(bbo::NON_DESTRUCTIVE);
   int i = CC.next_bit();
   while (i != EMPTY_ELEM) {
+    if (n.w + data.w[i] <= data.W) {
+      int pi_s = max(Pi_s, data.p[i]);
+      tmp = C;
+      tmp &= data.N[i];
+      if (tmp == C && (LB - n.p) >= (UB_p + pi_s)) {
+        should_stop = false;
+        Pi_s = pi_s;
+        CC.erase_bit(i);
+        C.set_bit(i);
+      }
+    } else {
+      CC.erase_bit(i);
+      n.C.erase_bit(i);
+    }
 
     i = CC.next_bit();
   }
 
   while (!should_stop && !CC.is_empty()) {
+    cout << "C = " << C << endl;
     UB_p += Pi_s;
     Pi_s = 0;
     C.erase_bit();
@@ -98,6 +117,14 @@ bitarray partition(const Node &n, const KPData &data) {
     int i = CC.next_bit();
     while (i != EMPTY_ELEM) {
       int pi_s = max(Pi_s, data.p[i]);
+      tmp = C;
+      tmp &= data.N[i];
+      if (tmp == C && (LB - n.p) >= (UB_p + pi_s)) {
+        should_stop = false;
+        Pi_s = pi_s;
+        CC.erase_bit(i);
+        C.set_bit(i);
+      }
 
       i = CC.next_bit();
     }
@@ -109,17 +136,17 @@ bitarray partition(const Node &n, const KPData &data) {
 bool should_cut(const Node &n) { return false; }
 
 void print_node(const Node &n) {
-  cout << "Node:\n";
-  n.I.print(cout, false);
-  cout << "\n";
-  cout << n.p << " " << n.w << "\n";
-  n.C.print(cout, false);
-  cout << "\n";
+  cout << "Node:\n"
+       << n.I << "\n"
+       << n.p << " " << n.w << "\n"
+       << n.C << endl;
 }
 
 Node add_item(const Node &n, int bit, const KPData &data) {
   Node new_node = n;
   new_node.I.set_bit(bit);
+  new_node.p += data.p[bit];
+  new_node.w += data.w[bit];
   new_node.C &= data.N[bit];
   return new_node;
 }
@@ -140,14 +167,15 @@ Node add_item(const Node &n, int bit, const KPData &data) {
 //
 Node branch_and_bound(const KPData &data, profit_t hLB = 0) {
   auto ones = bitarray(data.n);
-  ones.set_bit();
-  Node I_inc = {bitarray(data.n), 0, 0, ones};
-  profit_t LB = hLB;
+  ones.set_bit(0, data.n - 1);
+  I_inc = {bitarray(data.n), 0, 0, ones};
+  LB = hLB;
 
   stack<Node> Q;
   Q.push(I_inc);
   while (!Q.empty()) {
     auto n = Q.top();
+    cout << "n = " << n.I << endl;
     Q.pop();
     if (n.p > I_inc.p) {
       LB = n.p;
@@ -155,13 +183,15 @@ Node branch_and_bound(const KPData &data, profit_t hLB = 0) {
     }
     if (!should_cut(n)) {
       bitarray B = partition(n, data);
-      B.init_scan(bbo::DESTRUCTIVE);
+      cout << "B = " << B << endl;
+      B.init_scan(bbo::NON_DESTRUCTIVE);
       auto bit = B.next_bit();
       while (bit != EMPTY_ELEM) {
         Q.push(add_item(n, bit, data));
         bit = B.next_bit();
       }
     }
+    cout << endl;
   }
 
   return I_inc;
@@ -193,7 +223,7 @@ int main(int argc, char **argv) {
 
   // (4) Branch & Bound
   Node s = branch_and_bound(i);
-  print_node(s);
+  cout << s.p << "\n" << s.I << endl;
 
   return 0;
 }
