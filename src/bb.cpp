@@ -107,7 +107,6 @@ bitarray partition(Node &n, const KPData &data) {
   }
 
   while (!should_stop && !CC.is_empty()) {
-    cout << "C = " << C << endl;
     UB_p += Pi_s;
     Pi_s = 0;
     C.erase_bit();
@@ -136,10 +135,7 @@ bitarray partition(Node &n, const KPData &data) {
 bool should_cut(const Node &n) { return false; }
 
 void print_node(const Node &n) {
-  cout << "Node:\n"
-       << n.I << "\n"
-       << n.p << " " << n.w << "\n"
-       << n.C << endl;
+  cout << "Node:\n" << n.I << "\n" << n.p << " " << n.w << "\n" << n.C << endl;
 }
 
 Node add_item(const Node &n, int bit, const KPData &data) {
@@ -170,16 +166,17 @@ Node add_item(const Node &n, int bit, const KPData &data) {
 //
 uint64_t nodes = 0;
 Node branch_and_bound(const KPData &data, profit_t hLB = 0) {
-  auto ones = bitarray(data.n);
-  ones.set_bit(0, data.n - 1);
-  I_inc = {bitarray(data.n), 0, 0, ones};
+  I_inc.I.init(data.n);
+  I_inc.p = 0;
+  I_inc.w = 0;
+  I_inc.C.init(data.n);
+  I_inc.C.set_bit(0, data.n - 1);
   LB = hLB;
 
   stack<Node> Q;
   Q.push(I_inc);
   while (!Q.empty()) {
     auto n = Q.top();
-    cout << "n = " << n.I << endl;
     Q.pop();
     nodes++;
     if (n.p > I_inc.p) {
@@ -188,7 +185,6 @@ Node branch_and_bound(const KPData &data, profit_t hLB = 0) {
     }
     if (!should_cut(n)) {
       bitarray B = partition(n, data);
-      cout << "B = " << B << endl;
       B.init_scan(bbo::NON_DESTRUCTIVE);
       auto bit = B.next_bit();
       while (bit != EMPTY_ELEM) {
@@ -196,7 +192,6 @@ Node branch_and_bound(const KPData &data, profit_t hLB = 0) {
         bit = B.next_bit();
       }
     }
-    cout << endl;
   }
 
   return I_inc;
@@ -229,7 +224,7 @@ int main(int argc, char **argv) {
   // (4) Branch & Bound
   Node s = branch_and_bound(i);
   cout << s.p << "\n" << s.I << endl;
-  cout << nodes << endl;
+  // cout << nodes << endl;
 
   return 0;
 }
