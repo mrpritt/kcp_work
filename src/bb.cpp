@@ -78,7 +78,6 @@ profit_t LB = 0;
 // }
 // # Now CC is the branching set
 bitarray partition(Node &n, const KPData &data) {
-  // BUG: there is a bug here somewhere
   bool should_stop = true;
   bitarray CC(n.C);
   profit_t UB_p = 0;
@@ -93,11 +92,7 @@ bitarray partition(Node &n, const KPData &data) {
       int pi_s = max(Pi_s, data.p[i]);
       tmp = C;
       tmp &= data.N[i];
-      // cout << "tmp = " << tmp << endl;
-      // cout << "Ni = " << data.N[i] << endl;
-      // cout << "C = " << C << endl;
-      // cout << endl;
-      if (tmp != C && (LB - n.p) >= (UB_p + pi_s)) {
+      if (tmp == C && (LB - n.p) >= (UB_p + pi_s)) {
         should_stop = false;
         Pi_s = pi_s;
         CC.erase_bit(i);
@@ -124,7 +119,7 @@ bitarray partition(Node &n, const KPData &data) {
       int pi_s = max(Pi_s, data.p[i]);
       tmp = C;
       tmp &= data.N[i];
-      if (tmp != C && (LB - n.p) >= (UB_p + pi_s)) {
+      if (tmp == C && (LB - n.p) >= (UB_p + pi_s)) {
         should_stop = false;
         Pi_s = pi_s;
         CC.erase_bit(i);
@@ -152,7 +147,9 @@ Node add_item(const Node &n, int bit, const KPData &data) {
   new_node.I.set_bit(bit);
   new_node.p += data.p[bit];
   new_node.w += data.w[bit];
-  new_node.C &= data.N[bit];
+  auto tmp(data.N[bit]);
+  tmp.flip();
+  new_node.C &= tmp;
   new_node.C.erase_bit(bit);
   return new_node;
 }
@@ -182,7 +179,7 @@ Node branch_and_bound(const KPData &data, profit_t hLB = 0) {
   Q.push(I_inc);
   while (!Q.empty()) {
     auto n = Q.top();
-    // cout << "n = " << n.I << endl;
+    cout << "n = " << n.I << endl;
     Q.pop();
     nodes++;
     if (n.p > I_inc.p) {
@@ -191,7 +188,7 @@ Node branch_and_bound(const KPData &data, profit_t hLB = 0) {
     }
     if (!should_cut(n)) {
       bitarray B = partition(n, data);
-      // cout << "B = " << B << endl;
+      cout << "B = " << B << endl;
       B.init_scan(bbo::NON_DESTRUCTIVE);
       auto bit = B.next_bit();
       while (bit != EMPTY_ELEM) {
@@ -199,7 +196,7 @@ Node branch_and_bound(const KPData &data, profit_t hLB = 0) {
         bit = B.next_bit();
       }
     }
-    // cout << endl;
+    cout << endl;
   }
 
   return I_inc;
@@ -216,14 +213,10 @@ int main(int argc, char **argv) {
     return data.p[i] * data.w[j] > data.p[j] * data.w[i];
   });
   data = arrange_data(idx, data);
-  vector<bitarray> adj(data.n);
-  for (auto &barr : adj) {
-    barr.init(data.n);
-    barr.set_bit(0, data.n - 1);
-  }
+  vector<bitarray> adj(data.n, bitarray(data.n));
   for (auto p : data.pairs) {
-    adj[p.first - 1].erase_bit(p.second - 1);
-    adj[p.second - 1].erase_bit(p.first - 1);
+    adj[p.first - 1].set_bit(p.second - 1);
+    adj[p.second - 1].set_bit(p.first - 1);
   }
   KPData i = {data.n, data.p, data.w, data.W, adj};
 
