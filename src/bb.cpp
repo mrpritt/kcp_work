@@ -9,10 +9,6 @@
 
 #include "bitscan.h"
 
-/* NOTE:
- * bitarray.set_bit() sets all bits to 1, including the unused bits of the word
- */
-
 using namespace std;
 
 using Partition = vector<vector<int>>;
@@ -27,6 +23,7 @@ typedef struct {
   Weights w;
   weight_t W;
   vector<bitarray> N;
+  vector<bitarray> NC;
 } KPData;
 
 typedef struct {
@@ -76,7 +73,7 @@ profit_t LB = 0;
 //        }
 //    }
 // }
-// # Now CC is the branching set
+// return CC # Now CC is the branching set
 bitarray partition(Node &n, const KPData &data) {
   bool should_stop = true;
   bitarray CC(n.C);
@@ -143,9 +140,7 @@ Node add_item(const Node &n, int bit, const KPData &data) {
   new_node.I.set_bit(bit);
   new_node.p += data.p[bit];
   new_node.w += data.w[bit];
-  auto tmp(data.N[bit]);
-  tmp.flip();
-  new_node.C &= tmp;
+  new_node.C &= data.NC[bit];
   new_node.C.erase_bit(bit);
   return new_node;
 }
@@ -163,7 +158,6 @@ Node add_item(const Node &n, int bit, const KPData &data) {
 //        }
 //    }
 // }
-//
 uint64_t nodes = 0;
 Node branch_and_bound(const KPData &data, profit_t hLB = 0) {
   I_inc.I.init(data.n);
@@ -213,7 +207,12 @@ int main(int argc, char **argv) {
     adj[p.first - 1].set_bit(p.second - 1);
     adj[p.second - 1].set_bit(p.first - 1);
   }
-  KPData i = {data.n, data.p, data.w, data.W, adj};
+  vector<bitarray> adjC(data.n, bitarray(data.n));
+  for (int i = 0; i < data.n; i++) {
+    adjC[i] = adj[i];
+    adjC[i].flip();
+  }
+  KPData i = {data.n, data.p, data.w, data.W, adj, adjC};
 
   // (1) Preprocessing
 
@@ -223,8 +222,7 @@ int main(int argc, char **argv) {
 
   // (4) Branch & Bound
   Node s = branch_and_bound(i);
-  cout << s.p << "\n" << s.I << endl;
-  // cout << nodes << endl;
+  cout << s.p << "," << nodes << endl;
 
   return 0;
 }
