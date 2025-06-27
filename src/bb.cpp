@@ -2,6 +2,7 @@
 #include "kpc.hpp"
 #include "utils.hpp"
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <numeric>
 #include <stack>
@@ -83,7 +84,7 @@ void generate_ubl2_table(const KPData &data) {
     bitarray mask(n);
     mask.set_bit();
     if (j > 0)
-      mask.erase_bit(0, j-1);
+      mask.erase_bit(0, j - 1);
     for (const auto &C : cliques) {
       bitarray C_(C);
       C_ &= mask;
@@ -219,15 +220,41 @@ bitarray partition(Node &n, const KPData &data) {
 // # UB_p
 //
 // return false;
-bool should_cut(const Node &n, const KPData &data) {
+bool should_cut(Node &n, const KPData &data) {
   if (n.C.is_empty())
     return true;
 
   auto j = n.C.lsbn64();
   weight_t cV = data.W - n.w;
 
+  // UB_L2
   if (UB_L2[j][cV] <= LB - n.p)
     return true;
+
+  // UB_MT
+  profit_t ub_mt_base = 0;
+  weight_t w = 0;
+  n.C.init_scan(bbo::NON_DESTRUCTIVE);
+  int tm1 = EMPTY_ELEM;
+  int t = n.C.next_bit();
+  int tp1 = n.C.next_bit();
+  while (tp1 != EMPTY_ELEM && w + data.w[t] <= cV) {
+    ub_mt_base += data.p[t];
+    w += data.w[t];
+    tm1 = t;
+    t = tp1;
+    tp1 = n.C.next_bit();
+  }
+  if (tp1 != EMPTY_ELEM && tm1 != EMPTY_ELEM) {
+    weight_t cVb = cV - w;
+    profit_t ub_0 = ub_mt_base + floor(cVb * (data.p[tp1] / data.w[tp1]));
+    profit_t ub_1 =
+        ub_mt_base +
+        floor(data.p[t] - ((data.w[t] - cVb) * (data.p[tm1] / data.w[tm1])));
+    profit_t ub_mt = max(ub_0, ub_1);
+    if (ub_mt <= LB - n.p)
+      return true;
+  }
 
   return false;
 }
@@ -301,12 +328,12 @@ int main(int argc, char **argv) {
   }
   KPData instance = {data.n, data.p, data.w, data.W, adj, adjC};
 
-  // (1) Preprocessing
+  // (1) Heuristic initial solution
 
-  // (2) Heuristic initial solution
-
-  // (3) Bounds table generation
+  // (2) Bounds table generation
   generate_ubl2_table(instance);
+
+  // (3) Preprocessing
 
   // (4) Branch & Bound
   Node s = branch_and_bound(instance);
