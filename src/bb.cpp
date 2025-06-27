@@ -11,7 +11,7 @@
 
 using namespace std;
 
-using Partition = vector<vector<int>>;
+using Partition = vector<bitarray>;
 using weight_t = int;
 using profit_t = int;
 using Profits = vector<profit_t>;
@@ -35,6 +35,84 @@ typedef struct {
 
 Node I_inc;
 profit_t LB = 0;
+uint64_t nodes = 0;
+vector<vector<profit_t>> UB_L2;
+
+void print_node(const Node &n) {
+  cout << "Node:\n" << n.I << "\n" << n.p << " " << n.w << "\n" << n.C << endl;
+}
+
+Node add_item(const Node &n, int bit, const KPData &data) {
+  Node new_node = n;
+  new_node.I.set_bit(bit);
+  new_node.p += data.p[bit];
+  new_node.w += data.w[bit];
+  new_node.C &= data.NC[bit];
+  new_node.C.erase_bit(bit);
+  return new_node;
+}
+
+void generate_ubl2_table(const KPData &data) {
+  auto n = data.n;
+  UB_L2.resize(data.n);
+  Partition cliques;
+
+  // Partition cliques
+  int nv = 0;
+  vector<bool> free(n, true);
+  while (nv < n) {
+    bitarray C(n);
+    int bits = 0;
+    for (int i = 0; i < n; i++) {
+      if (!free[i])
+        continue;
+      bitarray tmp(C);
+      tmp &= data.N[i];
+      if (tmp == C) { // is_clique
+        C.set_bit(i);
+        free[i] = false;
+        bits++;
+      }
+    }
+    nv += bits;
+    cliques.push_back(C);
+  }
+
+  for (int j = 0; j < n; j++) {
+    Partition P;
+    bitarray mask(n);
+    mask.set_bit();
+    if (j > 0)
+      mask.erase_bit(0, j-1);
+    for (const auto &C : cliques) {
+      bitarray C_(C);
+      C_ &= mask;
+      if (!C_.is_empty())
+        P.push_back(C_);
+    }
+
+    vector<int> prev(data.W + 1, 0);
+    vector<int> curr(data.W + 1, 0);
+
+    for (int l = 0; l < P.size(); l++) {
+      for (int s = 0; s <= data.W; s++) {
+        int max_c = prev[s];
+        P[l].init_scan(bbo::NON_DESTRUCTIVE);
+        auto i = P[l].next_bit();
+        while (i != EMPTY_ELEM) {
+          const int wi = data.w[i];
+          if (wi <= s)
+            max_c = max(max_c, prev[s - wi] + data.p[i]);
+
+          i = P[l].next_bit();
+        }
+        curr[s] = max_c;
+      }
+      prev.swap(curr);
+    }
+    UB_L2[j] = prev;
+  }
+}
 
 // PARTITION(n)
 // should_stop = true     # should stop if no items in CC fits in P
@@ -129,20 +207,29 @@ bitarray partition(Node &n, const KPData &data) {
   return CC;
 }
 
-bool should_cut(const Node &n) { return false; }
+// SHOULD_CUT (n, data)
+// j = alpha(n.I)
+// cV = data.W - n.w
+// # UB_L2
+// if (UB_L2[j][cV] <= LB - n.p) {
+//    return true;
+// }
+// # UB_MT
+//
+// # UB_p
+//
+// return false;
+bool should_cut(const Node &n, const KPData &data) {
+  if (n.C.is_empty())
+    return true;
 
-void print_node(const Node &n) {
-  cout << "Node:\n" << n.I << "\n" << n.p << " " << n.w << "\n" << n.C << endl;
-}
+  auto j = n.C.lsbn64();
+  weight_t cV = data.W - n.w;
 
-Node add_item(const Node &n, int bit, const KPData &data) {
-  Node new_node = n;
-  new_node.I.set_bit(bit);
-  new_node.p += data.p[bit];
-  new_node.w += data.w[bit];
-  new_node.C &= data.NC[bit];
-  new_node.C.erase_bit(bit);
-  return new_node;
+  if (UB_L2[j][cV] <= LB - n.p)
+    return true;
+
+  return false;
 }
 
 // BRANCH_AND_BOUND(data)
@@ -158,7 +245,6 @@ Node add_item(const Node &n, int bit, const KPData &data) {
 //        }
 //    }
 // }
-uint64_t nodes = 0;
 Node branch_and_bound(const KPData &data, profit_t hLB = 0) {
   I_inc.I.init(data.n);
   I_inc.p = 0;
@@ -177,19 +263,20 @@ Node branch_and_bound(const KPData &data, profit_t hLB = 0) {
       LB = n.p;
       I_inc = n;
     }
-    if (!should_cut(n)) {
+    if (!should_cut(n, data)) {
       bitarray B = partition(n, data);
-      B.init_scan(bbo::NON_DESTRUCTIVE);
-      auto bit = B.next_bit();
+      B.init_scan(bbo::NON_DESTRUCTIVE_REVERSE);
+      auto bit = B.previous_bit();
       while (bit != EMPTY_ELEM) {
         Q.push(add_item(n, bit, data));
-        bit = B.next_bit();
+        bit = B.previous_bit();
       }
     }
   }
 
   return I_inc;
 }
+
 int main(int argc, char **argv) {
 
   string filename = argv[1];
@@ -212,16 +299,17 @@ int main(int argc, char **argv) {
     adjC[i] = adj[i];
     adjC[i].flip();
   }
-  KPData i = {data.n, data.p, data.w, data.W, adj, adjC};
+  KPData instance = {data.n, data.p, data.w, data.W, adj, adjC};
 
   // (1) Preprocessing
 
   // (2) Heuristic initial solution
 
   // (3) Bounds table generation
+  generate_ubl2_table(instance);
 
   // (4) Branch & Bound
-  Node s = branch_and_bound(i);
+  Node s = branch_and_bound(instance);
   cout << s.p << "," << nodes << endl;
 
   return 0;
