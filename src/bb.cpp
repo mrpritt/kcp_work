@@ -38,6 +38,9 @@ typedef struct {
 Node I_inc;
 profit_t LB = 0;
 uint64_t nodes = 0;
+uint64_t ub_l2_cuts = 0;
+uint64_t ub_mt_cuts = 0;
+uint64_t ub_p_cuts = 0;
 vector<vector<profit_t>> UB_L2;
 
 void print_node(const Node &n) {
@@ -229,8 +232,10 @@ bool should_cut(Node &n, const KPData &data) {
   weight_t cV = data.W - n.w;
 
   // UB_L2
-  if (UB_L2[j][cV] <= LB - n.p)
+  if (UB_L2[j][cV] <= LB - n.p) {
+    ub_l2_cuts++;
     return true;
+  }
 
   // UB_MT
   profit_t ub_mt_base = 0;
@@ -253,89 +258,84 @@ bool should_cut(Node &n, const KPData &data) {
         ub_mt_base +
         floor(data.p[t] - ((data.w[t] - cVb) * (data.p[tm1] / data.w[tm1])));
     profit_t ub_mt = max(ub_0, ub_1);
-    if (ub_mt <= LB - n.p)
+    if (ub_mt <= LB - n.p) {
+      ub_mt_cuts++;
       return true;
+    }
   }
 
-  // BUG: needs debugging, currently seg faults
-  //
-  // // UB_p
-  // // (0) Partition n.C into cliques using first fit and simultaneously calculate
-  // //     the MCKP critical item
-  // double bar_w = cV;
-  // int bar_j = data.n;
-  // Partition cliques;
-  // vector<double> c_profits;
-  // vector<weight_t> c_weights;
-  // cliques.push_back(bitarray(data.n));
-  //
-  // n.C.init_scan(bbo::NON_DESTRUCTIVE);
-  // int i = n.C.next_bit();
-  // while (i != EMPTY_ELEM) {
-  //   bool found = false;
-  //   for (int j = 0; j < cliques.size(); j++) {
-  //     auto &C = cliques[j];
-  //     bitarray tmp(C);
-  //     tmp &= data.N[i];
-  //     if (tmp == C) {
-  //       C.set_bit(i);
-  //       if (data.p[i] > c_profits[j]) {
-  //         if (data.w[i] <= bar_w) {
-  //           bar_w = bar_w - (data.p[i] - c_profits[j]) *
-  //                               ((double)data.w[j] / data.p[j]);
-  //         } else {
-  //           bar_j = min(bar_j, j);
-  //         }
-  //         c_profits[j] = c_profits[j];
-  //         c_weights[j] = data.w[j];
-  //       }
-  //       found = true;
-  //       break;
-  //     }
-  //   }
-  //   if (!found) {
-  //     bitarray C_(data.n);
-  //     C_.set_bit(i);
-  //     cliques.push_back(C_);
-  //     c_profits.push_back(data.p[i]);
-  //     c_weights.push_back(data.w[i]);
-  //   }
-  //   i = n.C.next_bit();
-  // }
-  // // (1) Check for closed form solution
-  // weight_t wc = 0;
-  // for (auto w : c_weights)
-  //   wc += w;
-  //
-  // profit_t UB_p;
-  // if (wc <= cV) {
-  //   UB_p = 0;
-  //   for (auto p : c_profits)
-  //     UB_p += p;
-  // } else {
-  //   // (2) Calculate beta_hat and pi_c_hat
-  //   double bar_beta = (double)data.p[bar_j] / data.w[bar_j];
-  //   for (int c = 0; c < cliques.size(); c++) {
-  //     cliques[c].init_scan(bbo::NON_DESTRUCTIVE);
-  //     int i = cliques[c].next_bit();
-  //     c_profits[c] = data.p[i] - bar_beta * data.w[i];
-  //     while (i != EMPTY_ELEM) {
-  //       c_profits[c] = max(c_profits[c], data.p[i] - bar_beta * data.w[i]);
-  //       i = cliques[c].next_bit();
-  //     }
-  //     c_profits[c] = max(c_profits[c], .0);
-  //   }
-  //   double ub_p = 0;
-  //   for (auto bar_pi_c : c_profits)
-  //     ub_p += bar_pi_c;
-  //   ub_p += bar_beta * cV;
-  //   UB_p = floor(ub_p);
-  // }
-  //
-  // // (3) Bound
-  // if (UB_p <= LB - n.p) {
-  //   return true;
-  // }
+  // UB_p
+  // (0) Partition n.C into cliques using first fit and simultaneously
+  // calculate the MCKP critical item
+  double bar_w = cV;
+  int bar_j = data.n;
+  Partition cliques;
+  vector<double> c_profits;
+
+  n.C.init_scan(bbo::NON_DESTRUCTIVE);
+  int i = n.C.next_bit();
+  while (i != EMPTY_ELEM) {
+    bool found = false;
+    for (int j = 0; j < cliques.size(); j++) {
+      auto &C = cliques[j];
+      bitarray tmp(C);
+      tmp &= data.N[i];
+      if (tmp == C) {
+        C.set_bit(i);
+        if (data.p[i] > c_profits[j]) {
+          if (data.w[i] <= bar_w) {
+            bar_w = bar_w - (data.p[i] - c_profits[j]) *
+                                ((double)data.w[i] / data.p[i]);
+          } else {
+            bar_j = min(bar_j, i);
+          }
+          c_profits[j] = data.p[i];
+        }
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      bitarray C_(data.n);
+      C_.set_bit(i);
+      cliques.push_back(C_);
+      c_profits.push_back(data.p[i]);
+    }
+
+    i = n.C.next_bit();
+  }
+
+  profit_t UB_p;
+  // (1) Check for closed form solution
+  if (bar_j == data.n) {
+    UB_p = 0;
+    for (auto p : c_profits)
+      UB_p += p;
+  } else {
+    // (2) Otherwise calculate beta_hat and pi_c_hat
+    double bar_beta = (double)data.p[bar_j] / data.w[bar_j];
+    for (int c = 0; c < cliques.size(); c++) {
+      cliques[c].init_scan(bbo::NON_DESTRUCTIVE);
+      int i = cliques[c].next_bit();
+      c_profits[c] = data.p[i] - bar_beta * data.w[i];
+      while (i != EMPTY_ELEM) {
+        c_profits[c] = max(c_profits[c], data.p[i] - bar_beta * data.w[i]);
+        i = cliques[c].next_bit();
+      }
+      c_profits[c] = max(c_profits[c], .0);
+    }
+    double ub_p = 0;
+    for (auto bar_pi_c : c_profits)
+      ub_p += bar_pi_c;
+    ub_p += bar_beta * cV;
+    UB_p = floor(ub_p);
+  }
+
+  // (3) Bound
+  if (UB_p <= LB - n.p) {
+    ub_p_cuts++;
+    return true;
+  }
 
   return false;
 }
@@ -418,7 +418,8 @@ int main(int argc, char **argv) {
 
   // (4) Branch & Bound
   Node s = branch_and_bound(instance);
-  cout << s.p << "," << nodes << endl;
+  cout << s.p << "," << nodes << "," << ub_l2_cuts << "," << ub_mt_cuts << ","
+       << ub_p_cuts << endl;
 
   return 0;
 }
