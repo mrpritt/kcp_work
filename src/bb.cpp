@@ -1,4 +1,3 @@
-#include "bbobject.h"
 #include "bbtypes.h"
 #include "kpc.hpp"
 #include "utils.hpp"
@@ -80,32 +79,28 @@ void generate_ubl2_table(const KPData &data) {
   }
 
   for (int j = 0; j < n; j++) {
-    Partition P;
     bitarray mask(n);
     mask.set_bit();
     if (j > 0)
       mask.erase_bit(0, j - 1);
-    for (const auto &C : cliques) {
-      bitarray C_(C);
-      C_ &= mask;
-      if (!C_.is_empty())
-        P.push_back(C_);
-    }
-
     vector<int> prev(data.W + 1, 0);
     vector<int> curr(data.W + 1, 0);
 
-    for (int l = 0; l < P.size(); l++) {
+    for (int l = 0; l < cliques.size(); l++) {
+      bitarray C_(cliques[l]);
+      C_ &= mask;
+      if (C_.is_empty())
+        continue;
       for (int s = 0; s <= data.W; s++) {
         int max_c = prev[s];
-        P[l].init_scan(bbo::NON_DESTRUCTIVE);
-        auto i = P[l].next_bit();
+        C_.init_scan(bbo::NON_DESTRUCTIVE);
+        auto i = C_.next_bit();
         while (i != EMPTY_ELEM) {
           const int wi = data.w[i];
           if (wi <= s)
             max_c = max(max_c, prev[s - wi] + data.p[i]);
 
-          i = P[l].next_bit();
+          i = C_.next_bit();
         }
         curr[s] = max_c;
       }
@@ -225,8 +220,8 @@ profit_t UB_MT(Node &n, const KPData &data) {
   n.C.init_scan(bbo::NON_DESTRUCTIVE);
   int tm1 = EMPTY_ELEM;
   int t = n.C.next_bit();
-  if (t == EMPTY_ELEM) { // NOTE: this can be tighter
-    return UB_mt;
+  if (t == EMPTY_ELEM) {
+    return 0;
   }
   int tp1 = n.C.next_bit();
   while (tp1 != EMPTY_ELEM && w + data.w[t] <= cV) {
@@ -354,16 +349,17 @@ Node branch_and_bound(const KPData &data, Node root) {
   while (!Q.empty()) {
     auto n = Q.top();
     Q.pop();
-    nodes++;
-    if (n.p > I_inc.p) {
-      I_inc = n;
-    }
     if (!should_cut(n, data)) {
+      nodes++;
       bitarray B = partition(n, data);
       B.init_scan(bbo::NON_DESTRUCTIVE_REVERSE);
       auto bit = B.previous_bit();
       while (bit != EMPTY_ELEM) {
-        Q.push(add_item(n, bit, data));
+        auto nl = add_item(n, bit, data);
+        if (nl.p > I_inc.p) {
+          I_inc = nl;
+        }
+        Q.push(nl);
         bit = B.previous_bit();
       }
     }
@@ -463,7 +459,7 @@ int main(int argc, char **argv) {
   auto h2 = heuristic2(instance);
   I_inc.I.init(instance.n);
   I_inc.C.init(instance.n);
-  I_inc = (h1.p > h2.p)? h1 : h2;
+  I_inc = (h1.p > h2.p) ? h1 : h2;
   profit_t LBi = I_inc.p;
 
   // (2) Bounds table generation
