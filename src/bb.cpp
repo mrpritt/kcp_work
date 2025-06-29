@@ -36,7 +36,7 @@ typedef struct {
   bitarray C;
 } Node;
 
-profit_t LB = 0;
+Node I_inc;
 uint64_t nodes = 0;
 uint64_t ub_l2_cuts = 0;
 uint64_t ub_mt_cuts = 0;
@@ -168,7 +168,7 @@ bitarray partition(Node &n, const KPData &data) {
       int pi_s = max(Pi_s, data.p[i]);
       tmp = C;
       tmp &= data.N[i];
-      if (tmp == C && (LB - n.p) >= (UB_p + pi_s)) {
+      if (tmp == C && (I_inc.p - n.p) >= (UB_p + pi_s)) {
         should_stop = false;
         Pi_s = pi_s;
         CC.erase_bit(i);
@@ -194,7 +194,7 @@ bitarray partition(Node &n, const KPData &data) {
       int pi_s = max(Pi_s, data.p[i]);
       tmp = C;
       tmp &= data.N[i];
-      if (tmp == C && (LB - n.p) >= (UB_p + pi_s)) {
+      if (tmp == C && (I_inc.p - n.p) >= (UB_p + pi_s)) {
         should_stop = false;
         Pi_s = pi_s;
         CC.erase_bit(i);
@@ -327,23 +327,20 @@ profit_t UB(Node &n, const KPData &data) {
 }
 
 bool should_cut(Node &n, const KPData &data) {
-  if (n.C.is_empty())
-    return true;
-
   // UB_L2_T
-  if (UB_L2(n, data) <= LB - n.p) {
+  if (UB_L2(n, data) <= I_inc.p - n.p) {
     ub_l2_cuts++;
     return true;
   }
 
   // UB_MT
-  if (UB_MT(n, data) <= LB - n.p) {
+  if (UB_MT(n, data) <= I_inc.p - n.p) {
     ub_mt_cuts++;
     return true;
   }
 
   // UB_p
-  if (UB_P(n, data) <= LB - n.p) {
+  if (UB_P(n, data) <= I_inc.p - n.p) {
     ub_p_cuts++;
     return true;
   }
@@ -352,8 +349,6 @@ bool should_cut(Node &n, const KPData &data) {
 }
 
 Node branch_and_bound(const KPData &data, Node root) {
-  Node I_inc = root;
-
   stack<Node> Q;
   Q.push(root);
   while (!Q.empty()) {
@@ -361,7 +356,6 @@ Node branch_and_bound(const KPData &data, Node root) {
     Q.pop();
     nodes++;
     if (n.p > I_inc.p) {
-      LB = n.p;
       I_inc = n;
     }
     if (!should_cut(n, data)) {
@@ -378,35 +372,39 @@ Node branch_and_bound(const KPData &data, Node root) {
   return I_inc;
 }
 
-profit_t _heuristic1(const KPData &data, int force_item = -1) {
-  bitarray S(data.n);
+Node _heuristic1(const KPData &data, int force_item = -1) {
+  Node S = {bitarray(data.n), 0, 0, bitarray(data.n)};
+  S.C.set_bit(0, data.n - 1);
   if (force_item >= 0 && force_item < data.n) {
-    S.set_bit(force_item);
+    S.I.set_bit(force_item);
+    S.C &= data.NC[force_item];
   }
-  profit_t h1 = 0;
-  weight_t w1 = 0;
   for (int i = 0; i < data.n; i++) {
-    bitarray tmp(S);
-    tmp &= data.NC[i];
-    if (tmp == S && w1 + data.w[i] <= data.W) {
-      S.set_bit(i);
-      h1 += data.p[i];
-      w1 += data.w[i];
+    if (S.C.is_bit(i) && S.w + data.w[i] <= data.W) {
+      S.I.set_bit(i);
+      S.p += data.p[i];
+      S.w += data.w[i];
+      S.C &= data.NC[i];
+      S.C.erase_bit(i);
     }
   }
-
-  return h1;
+  return S;
 }
 
-profit_t heuristic1(const KPData &data) {
-  profit_t h1 = 0;
+Node heuristic1(const KPData &data) {
+  Node h1 = {bitarray(data.n), 0, 0, bitarray(data.n)};
   for (int i = 0; i < data.n; i++) {
-    h1 = max(h1, _heuristic1(data, i));
+    auto _h1 = _heuristic1(data, i);
+    if (_h1.p > h1.p)
+      h1 = _h1;
   }
   return h1;
 }
 
-profit_t heuristic2(const KPData &data) { return 0; }
+Node heuristic2(const KPData &data) {
+  Node S = {bitarray(data.n), 0, 0, bitarray(data.n)};
+  return S;
+}
 
 bool verify_node(Node &n, const KPData &data) {
   profit_t p = 0;
@@ -419,7 +417,6 @@ bool verify_node(Node &n, const KPData &data) {
     i = n.I.next_bit();
   }
   if (w > data.W) {
-    cout << "w > W: " << w << " > " << data.W << endl;
     return false;
   }
   bitarray tmp(n.I);
@@ -430,7 +427,6 @@ bool verify_node(Node &n, const KPData &data) {
     i = n.I.next_bit();
   }
   if (tmp != n.I) {
-    cout << "conflict" << endl;
     return false;
   }
 
@@ -463,9 +459,12 @@ int main(int argc, char **argv) {
   KPData instance = {data.n, data.p, data.w, data.W, adj, adjC};
 
   // (1) Heuristic initial solution
-  LB = max(heuristic1(instance), heuristic2(instance));
-  profit_t LBi = LB;
-  LB = 0;
+  auto h1 = heuristic1(instance);
+  auto h2 = heuristic2(instance);
+  I_inc.I.init(instance.n);
+  I_inc.C.init(instance.n);
+  I_inc = (h1.p > h2.p)? h1 : h2;
+  profit_t LBi = I_inc.p;
 
   // (2) Bounds table generation
   generate_ubl2_table(instance);
@@ -473,32 +472,31 @@ int main(int argc, char **argv) {
   // (3) Preprocessing
   Node root = {bitarray(data.n), 0, 0, bitarray(data.n)};
   root.C.set_bit(0, data.n - 1);
-  // Node tmp = {bitarray(data.n), 0, 0, bitarray(data.n)};
-  // for (int i = 0; i < data.n; i++) {
-  //   tmp.I.erase_bit();
-  //   tmp.I.set_bit(i);
-  //   tmp.p = data.p[i];
-  //   tmp.w = data.w[i];
-  //   tmp.C = instance.NC[i];
-  //   if (LB >= (UB(tmp, instance) + data.p[i])) {
-  //     root.C.erase_bit(i);
-  //   }
-  //   tmp.I.erase_bit();
-  //   tmp.p = 0;
-  //   tmp.w = 0;
-  //   tmp.C.set_bit(0, data.n - 1);
-  //   tmp.C.erase_bit(i);
-  //   if (LB >= UB(tmp, instance)) {
-  //     bitarray c(root.I);
-  //     c &= instance.N[i];
-  //     if (root.w + data.w[i] <= data.W && c.is_empty()) {
-  //       root.I.set_bit(i);
-  //       root.p += data.p[i];
-  //       root.w += data.w[i];
-  //       root.C.erase_bit(i);
-  //     }
-  //   }
-  // }
+  Node tmp = {bitarray(data.n), 0, 0, bitarray(data.n)};
+  for (int i = 0; i < data.n; i++) {
+    tmp.I.erase_bit();
+    tmp.I.set_bit(i);
+    tmp.p = data.p[i];
+    tmp.w = data.w[i];
+    tmp.C = instance.NC[i];
+    if (I_inc.p >= (UB(tmp, instance) + data.p[i])) {
+      root.C.erase_bit(i);
+    }
+    tmp.I.erase_bit();
+    tmp.p = 0;
+    tmp.w = 0;
+    tmp.C.set_bit(0, data.n - 1);
+    tmp.C.erase_bit(i);
+    if (I_inc.p >= UB(tmp, instance)) {
+      if (root.w + data.w[i] <= data.W && root.C.is_bit(i)) {
+        root.I.set_bit(i);
+        root.p += data.p[i];
+        root.w += data.w[i];
+        root.C &= instance.NC[i];
+        root.C.erase_bit(i);
+      }
+    }
+  }
 
   // (4) Branch & Bound
   Node s = branch_and_bound(instance, root);
