@@ -353,13 +353,12 @@ bool should_cut(Node &n, const KPData &data) {
 //        }
 //    }
 // }
-Node branch_and_bound(const KPData &data, profit_t hLB = 0) {
+Node branch_and_bound(const KPData &data) {
   I_inc.I.init(data.n);
   I_inc.p = 0;
   I_inc.w = 0;
   I_inc.C.init(data.n);
   I_inc.C.set_bit(0, data.n - 1);
-  LB = hLB;
 
   stack<Node> Q;
   Q.push(I_inc);
@@ -384,6 +383,36 @@ Node branch_and_bound(const KPData &data, profit_t hLB = 0) {
 
   return I_inc;
 }
+
+profit_t _heuristic1(const KPData &data, int force_item = -1) {
+  bitarray S(data.n);
+  if (force_item >= 0 && force_item < data.n) {
+    S.set_bit(force_item);
+  }
+  profit_t h1 = 0;
+  weight_t w1 = 0;
+  for (int i = 0; i < data.n; i++) {
+    bitarray tmp(S);
+    tmp &= data.NC[i];
+    if (tmp == S && w1 + data.w[i] <= data.W) {
+      S.set_bit(i);
+      h1 += data.p[i];
+      w1 += data.w[i];
+    }
+  }
+
+  return h1;
+}
+
+profit_t heuristic1(const KPData &data) {
+  profit_t h1 = 0;
+  for (int i = 0; i < data.n; i++) {
+    h1 = max(h1, _heuristic1(data, i));
+  }
+  return h1;
+}
+
+profit_t heuristic2(const KPData &data) { return 0; }
 
 int main(int argc, char **argv) {
 
@@ -410,6 +439,8 @@ int main(int argc, char **argv) {
   KPData instance = {data.n, data.p, data.w, data.W, adj, adjC};
 
   // (1) Heuristic initial solution
+  LB = max(heuristic1(instance), heuristic2(instance));
+  profit_t LBi = LB;
 
   // (2) Bounds table generation
   generate_ubl2_table(instance);
@@ -418,8 +449,8 @@ int main(int argc, char **argv) {
 
   // (4) Branch & Bound
   Node s = branch_and_bound(instance);
-  cout << s.p << "," << nodes << "," << ub_l2_cuts << "," << ub_mt_cuts << ","
-       << ub_p_cuts << endl;
+  cout << s.p << "," << LBi << "," << nodes << "," << ub_l2_cuts << ","
+       << ub_mt_cuts << "," << ub_p_cuts << endl;
 
   return 0;
 }
