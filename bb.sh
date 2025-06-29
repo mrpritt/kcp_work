@@ -1,0 +1,8 @@
+OUT_FILE="bb.csv"
+
+echo "instance,profit,LBi,nodes,ub_l2_cuts,ub_mt_cuts,ub_p_cuts,valid" > $OUT_FILE
+
+parallel --bar -j 8 'echo -n "{},"; ./build/bin/bb <(bzcat {})' ::: ~/ic2024/data/set2/C1/*.bz2 >> $OUT_FILE
+
+Rscript ./bounds/format_instance_name.R $OUT_FILE
+Rscript test.R

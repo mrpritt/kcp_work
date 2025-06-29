@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <numeric>
 #include <stack>
 #include <string>
@@ -35,17 +36,12 @@ typedef struct {
   bitarray C;
 } Node;
 
-Node I_inc;
 profit_t LB = 0;
 uint64_t nodes = 0;
 uint64_t ub_l2_cuts = 0;
 uint64_t ub_mt_cuts = 0;
 uint64_t ub_p_cuts = 0;
-vector<vector<profit_t>> UB_L2;
-
-void print_node(const Node &n) {
-  cout << "Node:\n" << n.I << "\n" << n.p << " " << n.w << "\n" << n.C << endl;
-}
+vector<vector<profit_t>> UB_L2_T;
 
 Node add_item(const Node &n, int bit, const KPData &data) {
   Node new_node = n;
@@ -59,7 +55,7 @@ Node add_item(const Node &n, int bit, const KPData &data) {
 
 void generate_ubl2_table(const KPData &data) {
   auto n = data.n;
-  UB_L2.resize(data.n);
+  UB_L2_T.resize(data.n);
   Partition cliques;
 
   // Partition cliques
@@ -115,7 +111,7 @@ void generate_ubl2_table(const KPData &data) {
       }
       prev.swap(curr);
     }
-    UB_L2[j] = prev;
+    UB_L2_T[j] = prev;
   }
 }
 
@@ -212,37 +208,26 @@ bitarray partition(Node &n, const KPData &data) {
   return CC;
 }
 
-// SHOULD_CUT (n, data)
-// j = alpha(n.I)
-// cV = data.W - n.w
-// # UB_L2
-// if (UB_L2[j][cV] <= LB - n.p) {
-//    return true;
-// }
-// # UB_MT
-//
-// # UB_p
-//
-// return false;
-bool should_cut(Node &n, const KPData &data) {
-  if (n.C.is_empty())
-    return true;
-
+profit_t UB_L2(Node &n, const KPData &data) {
   auto j = n.C.lsbn64();
   weight_t cV = data.W - n.w;
-
-  // UB_L2
-  if (UB_L2[j][cV] <= LB - n.p) {
-    ub_l2_cuts++;
-    return true;
+  if (j == EMPTY_ELEM || cV < 0) {
+    return 0;
   }
+  return UB_L2_T[j][cV];
+}
 
-  // UB_MT
+profit_t UB_MT(Node &n, const KPData &data) {
+  profit_t UB_mt = std::numeric_limits<profit_t>::max();
+  weight_t cV = data.W - n.w;
   profit_t ub_mt_base = 0;
   weight_t w = 0;
   n.C.init_scan(bbo::NON_DESTRUCTIVE);
   int tm1 = EMPTY_ELEM;
   int t = n.C.next_bit();
+  if (t == EMPTY_ELEM) { // NOTE: this can be tighter
+    return UB_mt;
+  }
   int tp1 = n.C.next_bit();
   while (tp1 != EMPTY_ELEM && w + data.w[t] <= cV) {
     ub_mt_base += data.p[t];
@@ -257,14 +242,15 @@ bool should_cut(Node &n, const KPData &data) {
     profit_t ub_1 =
         ub_mt_base +
         floor(data.p[t] - ((data.w[t] - cVb) * (data.p[tm1] / data.w[tm1])));
-    profit_t ub_mt = max(ub_0, ub_1);
-    if (ub_mt <= LB - n.p) {
-      ub_mt_cuts++;
-      return true;
-    }
+    UB_mt = max(ub_0, ub_1);
   }
+  return UB_mt;
+}
 
-  // UB_p
+profit_t UB_P(Node &n, const KPData &data) {
+  weight_t cV = data.W - n.w;
+  if (cV < 0)
+    return 0;
   // (0) Partition n.C into cliques using first fit and simultaneously
   // calculate the MCKP critical item
   double bar_w = cV;
@@ -330,9 +316,34 @@ bool should_cut(Node &n, const KPData &data) {
     ub_p += bar_beta * cV;
     UB_p = floor(ub_p);
   }
+  return UB_p;
+}
 
-  // (3) Bound
-  if (UB_p <= LB - n.p) {
+profit_t UB(Node &n, const KPData &data) {
+  profit_t ub_l2 = UB_L2(n, data);
+  profit_t ub_mt = UB_MT(n, data);
+  profit_t ub_p = UB_P(n, data);
+  return min(ub_l2, min(ub_mt, ub_p));
+}
+
+bool should_cut(Node &n, const KPData &data) {
+  if (n.C.is_empty())
+    return true;
+
+  // UB_L2_T
+  if (UB_L2(n, data) <= LB - n.p) {
+    ub_l2_cuts++;
+    return true;
+  }
+
+  // UB_MT
+  if (UB_MT(n, data) <= LB - n.p) {
+    ub_mt_cuts++;
+    return true;
+  }
+
+  // UB_p
+  if (UB_P(n, data) <= LB - n.p) {
     ub_p_cuts++;
     return true;
   }
@@ -340,28 +351,11 @@ bool should_cut(Node &n, const KPData &data) {
   return false;
 }
 
-// BRANCH_AND_BOUND(data)
-// # create root node
-// Q = {r}
-// while (!Q.empty()) {
-//    n = Q.front()
-//    Q.pop()
-//    if (!should_cut(n)) {
-//        B = partition(n);
-//        for i in B {
-//            Q.push(add_item(n, i));
-//        }
-//    }
-// }
-Node branch_and_bound(const KPData &data) {
-  I_inc.I.init(data.n);
-  I_inc.p = 0;
-  I_inc.w = 0;
-  I_inc.C.init(data.n);
-  I_inc.C.set_bit(0, data.n - 1);
+Node branch_and_bound(const KPData &data, Node root) {
+  Node I_inc = root;
 
   stack<Node> Q;
-  Q.push(I_inc);
+  Q.push(root);
   while (!Q.empty()) {
     auto n = Q.top();
     Q.pop();
@@ -414,6 +408,35 @@ profit_t heuristic1(const KPData &data) {
 
 profit_t heuristic2(const KPData &data) { return 0; }
 
+bool verify_node(Node &n, const KPData &data) {
+  profit_t p = 0;
+  weight_t w = 0;
+  n.I.init_scan(bbo::NON_DESTRUCTIVE);
+  auto i = n.I.next_bit();
+  while (i != EMPTY_ELEM) {
+    p += data.p[i];
+    w += data.w[i];
+    i = n.I.next_bit();
+  }
+  if (w > data.W) {
+    cout << "w > W: " << w << " > " << data.W << endl;
+    return false;
+  }
+  bitarray tmp(n.I);
+  n.I.init_scan(bbo::NON_DESTRUCTIVE);
+  i = n.I.next_bit();
+  while (i != EMPTY_ELEM) {
+    tmp &= data.NC[i];
+    i = n.I.next_bit();
+  }
+  if (tmp != n.I) {
+    cout << "conflict" << endl;
+    return false;
+  }
+
+  return true;
+}
+
 int main(int argc, char **argv) {
 
   string filename = argv[1];
@@ -427,30 +450,61 @@ int main(int argc, char **argv) {
   });
   data = arrange_data(idx, data);
   vector<bitarray> adj(data.n, bitarray(data.n));
+  vector<bitarray> adjC(data.n, bitarray(data.n));
+  for (int i = 0; i < data.n; i++) {
+    adjC[i].set_bit(0, data.n - 1);
+  }
   for (auto p : data.pairs) {
     adj[p.first - 1].set_bit(p.second - 1);
     adj[p.second - 1].set_bit(p.first - 1);
-  }
-  vector<bitarray> adjC(data.n, bitarray(data.n));
-  for (int i = 0; i < data.n; i++) {
-    adjC[i] = adj[i];
-    adjC[i].flip();
+    adjC[p.first - 1].erase_bit(p.second - 1);
+    adjC[p.second - 1].erase_bit(p.first - 1);
   }
   KPData instance = {data.n, data.p, data.w, data.W, adj, adjC};
 
   // (1) Heuristic initial solution
   LB = max(heuristic1(instance), heuristic2(instance));
   profit_t LBi = LB;
+  LB = 0;
 
   // (2) Bounds table generation
   generate_ubl2_table(instance);
 
   // (3) Preprocessing
+  Node root = {bitarray(data.n), 0, 0, bitarray(data.n)};
+  root.C.set_bit(0, data.n - 1);
+  // Node tmp = {bitarray(data.n), 0, 0, bitarray(data.n)};
+  // for (int i = 0; i < data.n; i++) {
+  //   tmp.I.erase_bit();
+  //   tmp.I.set_bit(i);
+  //   tmp.p = data.p[i];
+  //   tmp.w = data.w[i];
+  //   tmp.C = instance.NC[i];
+  //   if (LB >= (UB(tmp, instance) + data.p[i])) {
+  //     root.C.erase_bit(i);
+  //   }
+  //   tmp.I.erase_bit();
+  //   tmp.p = 0;
+  //   tmp.w = 0;
+  //   tmp.C.set_bit(0, data.n - 1);
+  //   tmp.C.erase_bit(i);
+  //   if (LB >= UB(tmp, instance)) {
+  //     bitarray c(root.I);
+  //     c &= instance.N[i];
+  //     if (root.w + data.w[i] <= data.W && c.is_empty()) {
+  //       root.I.set_bit(i);
+  //       root.p += data.p[i];
+  //       root.w += data.w[i];
+  //       root.C.erase_bit(i);
+  //     }
+  //   }
+  // }
 
   // (4) Branch & Bound
-  Node s = branch_and_bound(instance);
+  Node s = branch_and_bound(instance, root);
   cout << s.p << "," << LBi << "," << nodes << "," << ub_l2_cuts << ","
-       << ub_mt_cuts << "," << ub_p_cuts << endl;
+       << ub_mt_cuts << "," << ub_p_cuts << "," << verify_node(s, instance)
+       << endl;
 
   return 0;
 }
