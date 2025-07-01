@@ -373,7 +373,10 @@ Node _heuristic1(const KPData &data, int force_item = -1) {
   S.C.set_bit(0, data.n - 1);
   if (force_item >= 0 && force_item < data.n) {
     S.I.set_bit(force_item);
+    S.p += data.p[force_item];
+    S.w += data.w[force_item];
     S.C &= data.NC[force_item];
+    S.C.erase_bit(force_item);
   }
   for (int i = 0; i < data.n; i++) {
     if (S.C.is_bit(i) && S.w + data.w[i] <= data.W) {
