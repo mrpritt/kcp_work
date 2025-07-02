@@ -522,18 +522,19 @@ int main(int argc, char **argv) {
   root.C.set_bit(0, data.n - 1);
   Node tmp = {bitarray(data.n), 0, 0, bitarray(data.n)};
   for (int i = 0; i < data.n; i++) {
-    tmp.I.erase_bit();
+    tmp.I = root.I;
     tmp.I.set_bit(i);
-    tmp.p = data.p[i];
-    tmp.w = data.w[i];
-    tmp.C = instance.NC[i];
+    tmp.p = root.p + data.p[i];
+    tmp.w = root.w + data.w[i];
+    tmp.C = root.C;
+    tmp.C &= instance.NC[i];
     if (I_inc.p >= (UB(tmp, instance) + data.p[i])) {
       root.C.erase_bit(i);
     }
-    tmp.I.erase_bit();
-    tmp.p = 0;
-    tmp.w = 0;
-    tmp.C.set_bit(0, data.n - 1);
+    tmp.I = root.I;
+    tmp.p = root.p;
+    tmp.w = root.w;
+    tmp.C = root.C;
     tmp.C.erase_bit(i);
     if (I_inc.p >= UB(tmp, instance)) {
       if (root.w + data.w[i] <= data.W && root.C.is_bit(i)) {
@@ -541,7 +542,6 @@ int main(int argc, char **argv) {
         root.p += data.p[i];
         root.w += data.w[i];
         root.C &= instance.NC[i];
-        root.C.erase_bit(i);
       }
     }
   }
