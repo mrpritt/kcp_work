@@ -247,7 +247,6 @@ profit_t UB_P(Node &n, const KPData &data) {
   int bar_j = data.n;
   Partition cliques;
   vector<double> c_profits;
-  vector<weight_t> c_weights;
 
   n.C.init_scan(bbo::NON_DESTRUCTIVE);
   int i = n.C.next_bit();
@@ -265,7 +264,6 @@ profit_t UB_P(Node &n, const KPData &data) {
             bar_j = min(bar_j, i);
           }
           c_profits[j] = data.p[i];
-          c_weights[j] = data.w[i];
         }
         found = true;
         break;
@@ -276,18 +274,14 @@ profit_t UB_P(Node &n, const KPData &data) {
       C_.set_bit(i);
       cliques.push_back(C_);
       c_profits.push_back(data.p[i]);
-      c_weights.push_back(data.w[i]);
     }
 
     i = n.C.next_bit();
   }
 
   profit_t UB_p;
-  weight_t UB_w = 0;
-  for (auto w : c_weights)
-    UB_w += w;
   // (1) Check for closed form solution
-  if (UB_w <= cV) {
+  if (bar_j == data.n) {
     UB_p = 0;
     for (auto p : c_profits)
       UB_p += p;
