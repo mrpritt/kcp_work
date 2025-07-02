@@ -4,7 +4,9 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <ilcplex/ilocplex.h>
 #include <limits>
+#include <memory>
 #include <numeric>
 #include <stack>
 #include <string>
@@ -400,8 +402,62 @@ Node heuristic1(const KPData &data) {
   return h1;
 }
 
-Node heuristic2(const KPData &data) {
+Node heuristic2(KPData &data) {
+  unique_ptr<IloEnv> env_ = make_unique<IloEnv>();
+  unique_ptr<IloModel> model_ = make_unique<IloModel>(*env_);
+  IloCplex solver_ = IloCplex(*model_);
+  solver_.setParam(IloCplex::Param::Threads, 1);
+  solver_.setOut(env_->getNullStream());
+  solver_.setWarning(env_->getNullStream());
+
+  IloNumVarArray x_ = IloNumVarArray(*env_, data.n, 0.0, 1.0, ILOFLOAT);
+  IloExpr expr(*env_);
+  for (int i = 0; i < data.n; ++i)
+    expr += data.w[i] * x_[i];
+  model_->add(expr <= data.W);
+  expr.end();
+
+  IloExpr conflictExpr(*env_);
+  for (int i = 0; i < data.n; ++i) {
+    conflictExpr.clear();
+    data.N[i].init_scan(bbo::NON_DESTRUCTIVE);
+    int j = data.N[i].next_bit();
+    while (j != EMPTY_ELEM) {
+      conflictExpr += x_[j];
+      j = data.N[i].next_bit();
+    }
+    model_->add(conflictExpr <= data.N[i].popcn64() * (1 - x_[i]));
+  }
+  conflictExpr.end();
+
+  IloExpr objExpr(*env_);
+  for (int i = 0; i < data.n; ++i)
+    objExpr += data.p[i] * x_[i];
+  model_->add(IloMaximize(*env_, objExpr));
+  objExpr.end();
+
   Node S = {bitarray(data.n), 0, 0, bitarray(data.n)};
+  S.C.set_bit(0, data.n - 1);
+
+  bool should_stop = false;
+  IloNumArray xvalues(*env_);
+  while (!should_stop) {
+    should_stop = true;
+    solver_.solve();
+    // assert(solver_.getStatus() == IloAlgorithm::Optimal);
+    solver_.getValues(x_, xvalues);
+    for (auto i = 0; i < data.n; i++) {
+      if (xvalues[i] > 0.0 && !S.I.is_bit(i) && S.C.is_bit(i) &&
+          S.w + data.w[i] <= data.W) {
+        S.I.set_bit(i);
+        S.p += data.p[i];
+        S.w += data.w[i];
+        S.C &= data.NC[i];
+        x_[i].setLB(1.0);
+        should_stop = false;
+      }
+    }
+  }
   return S;
 }
 
@@ -499,9 +555,9 @@ int main(int argc, char **argv) {
 
   // (4) Branch & Bound
   Node s = branch_and_bound(instance, root);
-  cout << s.p << "," << LBi << "," << nodes << "," << ub_l2_cuts << ","
-       << ub_mt_cuts << "," << ub_p_cuts << "," << verify_node(s, instance)
-       << endl;
+  cout << s.p << "," << LBi << "," << h1.p << "," << h2.p << "," << nodes << ","
+       << ub_l2_cuts << "," << ub_mt_cuts << "," << ub_p_cuts << ","
+       << verify_node(s, instance) << endl;
 
   return 0;
 }
