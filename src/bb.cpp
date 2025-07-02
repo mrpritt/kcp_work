@@ -50,7 +50,6 @@ Node add_item(const Node &n, int bit, const KPData &data) {
   new_node.p += data.p[bit];
   new_node.w += data.w[bit];
   new_node.C &= data.NC[bit];
-  new_node.C.erase_bit(bit);
   return new_node;
 }
 
@@ -68,9 +67,7 @@ void generate_ubl2_table(const KPData &data) {
     for (int i = 0; i < n; i++) {
       if (!free[i])
         continue;
-      bitarray tmp(C);
-      tmp &= data.N[i];
-      if (tmp == C) { // is_clique
+      if (C.is_disjoint(data.NC[i])) { // is_clique
         C.set_bit(i);
         free[i] = false;
         bits++;
@@ -156,16 +153,13 @@ bitarray partition(Node &n, const KPData &data) {
   profit_t UB_p = 0;
   profit_t Pi_s = 0;
   bitarray C(data.n);
-  bitarray tmp(data.n);
 
   CC.init_scan(bbo::NON_DESTRUCTIVE);
   int i = CC.next_bit();
   while (i != EMPTY_ELEM) {
     if (n.w + data.w[i] <= data.W) {
       int pi_s = max(Pi_s, data.p[i]);
-      tmp = C;
-      tmp &= data.N[i];
-      if (tmp == C && (I_inc.p - n.p) >= (UB_p + pi_s)) {
+      if (C.is_disjoint(data.NC[i]) && (I_inc.p - n.p) >= (UB_p + pi_s)) {
         should_stop = false;
         Pi_s = pi_s;
         CC.erase_bit(i);
@@ -189,9 +183,7 @@ bitarray partition(Node &n, const KPData &data) {
     int i = CC.next_bit();
     while (i != EMPTY_ELEM) {
       int pi_s = max(Pi_s, data.p[i]);
-      tmp = C;
-      tmp &= data.N[i];
-      if (tmp == C && (I_inc.p - n.p) >= (UB_p + pi_s)) {
+      if (C.is_disjoint(data.NC[i]) && (I_inc.p - n.p) >= (UB_p + pi_s)) {
         should_stop = false;
         Pi_s = pi_s;
         CC.erase_bit(i);
@@ -235,10 +227,11 @@ profit_t UB_MT(Node &n, const KPData &data) {
   }
   if (tp1 != EMPTY_ELEM && tm1 != EMPTY_ELEM) {
     weight_t cVb = cV - w;
-    profit_t ub_0 = ub_mt_base + floor(cVb * (data.p[tp1] / data.w[tp1]));
+    profit_t ub_0 =
+        ub_mt_base + floor(cVb * ((double)data.p[tp1] / data.w[tp1]));
     profit_t ub_1 =
-        ub_mt_base +
-        floor(data.p[t] - ((data.w[t] - cVb) * (data.p[tm1] / data.w[tm1])));
+        ub_mt_base + floor(data.p[t] - ((data.w[t] - cVb) *
+                                        ((double)data.p[tm1] / data.w[tm1])));
     UB_mt = max(ub_0, ub_1);
   }
   return UB_mt;
@@ -254,6 +247,7 @@ profit_t UB_P(Node &n, const KPData &data) {
   int bar_j = data.n;
   Partition cliques;
   vector<double> c_profits;
+  vector<weight_t> c_weights;
 
   n.C.init_scan(bbo::NON_DESTRUCTIVE);
   int i = n.C.next_bit();
@@ -261,9 +255,7 @@ profit_t UB_P(Node &n, const KPData &data) {
     bool found = false;
     for (int j = 0; j < cliques.size(); j++) {
       auto &C = cliques[j];
-      bitarray tmp(C);
-      tmp &= data.N[i];
-      if (tmp == C) {
+      if (C.is_disjoint(data.NC[i])) {
         C.set_bit(i);
         if (data.p[i] > c_profits[j]) {
           if (data.w[i] <= bar_w) {
@@ -273,6 +265,7 @@ profit_t UB_P(Node &n, const KPData &data) {
             bar_j = min(bar_j, i);
           }
           c_profits[j] = data.p[i];
+          c_weights[j] = data.w[i];
         }
         found = true;
         break;
@@ -283,14 +276,18 @@ profit_t UB_P(Node &n, const KPData &data) {
       C_.set_bit(i);
       cliques.push_back(C_);
       c_profits.push_back(data.p[i]);
+      c_weights.push_back(data.w[i]);
     }
 
     i = n.C.next_bit();
   }
 
   profit_t UB_p;
+  weight_t UB_w = 0;
+  for (auto w : c_weights)
+    UB_w += w;
   // (1) Check for closed form solution
-  if (bar_j == data.n) {
+  if (UB_w <= cV) {
     UB_p = 0;
     for (auto p : c_profits)
       UB_p += p;
@@ -378,7 +375,6 @@ Node _heuristic1(const KPData &data, int force_item = -1) {
     S.p += data.p[force_item];
     S.w += data.w[force_item];
     S.C &= data.NC[force_item];
-    S.C.erase_bit(force_item);
   }
   for (int i = 0; i < data.n; i++) {
     if (S.C.is_bit(i) && S.w + data.w[i] <= data.W) {
@@ -386,7 +382,6 @@ Node _heuristic1(const KPData &data, int force_item = -1) {
       S.p += data.p[i];
       S.w += data.w[i];
       S.C &= data.NC[i];
-      S.C.erase_bit(i);
     }
   }
   return S;
@@ -474,15 +469,12 @@ bool verify_node(Node &n, const KPData &data) {
   if (w > data.W) {
     return false;
   }
-  bitarray tmp(n.I);
   n.I.init_scan(bbo::NON_DESTRUCTIVE);
   i = n.I.next_bit();
   while (i != EMPTY_ELEM) {
-    tmp &= data.NC[i];
+    if (!n.I.is_disjoint(data.N[i]))
+      return false;
     i = n.I.next_bit();
-  }
-  if (tmp != n.I) {
-    return false;
   }
 
   return true;
@@ -504,6 +496,7 @@ int main(int argc, char **argv) {
   vector<bitarray> adjC(data.n, bitarray(data.n));
   for (int i = 0; i < data.n; i++) {
     adjC[i].set_bit(0, data.n - 1);
+    adjC[i].erase_bit(i);
   }
   for (auto p : data.pairs) {
     adj[p.first - 1].set_bit(p.second - 1);
