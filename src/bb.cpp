@@ -109,44 +109,6 @@ void generate_ubl2_table(const KPData &data) {
   }
 }
 
-// PARTITION(n)
-// should_stop = true     # should stop if no items in CC fits in P
-// CC = n.C               # copy of candidates
-// UB_p = 0;              # partition upper bound up until previous clique
-// Pi_s = 0;              # current clique max profit => UB_p + Pi_s = UB_P
-// C = 0                  # current clique being built
-// for i in CC {
-//    if (n.w + w[i] <= c) {
-//        pi_s = max(Pi_s, p[i])
-//        if (C & N[i] == C &&
-//            LB - n.p >= UB_p + pi_s) { # if i forms clique and budget okay
-//            should_stop = false;
-//            Pi_s = pi_s;
-//            CC[i] = 0;
-//            C[i] = 1;
-//        }
-//    } else {        # remove from all successor nodes if item does not fit
-//        CC[i] = 0;
-//        n.C = 0;
-//    }
-// }
-// while (!should_stop && CC > 0) {
-//    UB_p += Pi_s;
-//    C = 0;
-//    Pi_s = 0;
-//    should_stop = true;
-//    for i in CC {
-//        pi_s = max(Pi_s, p[i])
-//        if (C & N[i] == C &&
-//            LB - n.p >= UB_p + pi_s) { # if i forms clique and budget okay
-//            should_stop = false;
-//            Pi_s = pi_s;
-//            CC[i] = 0;
-//            C[i] = 1;
-//        }
-//    }
-// }
-// return CC # Now CC is the branching set
 bitarray partition(Node &n, const KPData &data) {
   bool should_stop = true;
   bitarray CC(n.C);
@@ -442,19 +404,18 @@ Node branch_and_bound(const KPData &data, Node root) {
   while (!Q.empty()) {
     auto n = Q.top();
     Q.pop();
-    if (!should_cut(n, data)) {
-      nodes++;
-      bitarray B = partition(n, data);
-      B.init_scan(bbo::NON_DESTRUCTIVE_REVERSE);
-      auto bit = B.previous_bit();
-      while (bit != EMPTY_ELEM) {
-        auto nl = add_item(n, bit, data);
-        if (nl.p > I_inc.p) {
-          I_inc = nl;
-        }
-        Q.push(nl);
-        bit = B.previous_bit();
+    nodes++;
+    bitarray B = partition(n, data);
+    B.init_scan(bbo::NON_DESTRUCTIVE_REVERSE);
+    auto bit = B.previous_bit();
+    while (bit != EMPTY_ELEM) {
+      auto nl = add_item(n, bit, data);
+      if (nl.p > I_inc.p) {
+        I_inc = nl;
       }
+      if (nl.C.popcn64() && !should_cut(nl, data))
+        Q.push(nl);
+      bit = B.previous_bit();
     }
   }
 
@@ -639,10 +600,11 @@ int main(int argc, char **argv) {
       }
     }
   }
+  profit_t UBi = UB(root, instance);
 
   // (4) Branch & Bound
   Node s = branch_and_bound(instance, root);
-  cout << s.p << "," << LBi << "," << h1.p << "," << h2.p << "," << nodes << ","
+  cout << s.p << "," << LBi << "," << UBi << "," << h1.p << "," << h2.p << "," << nodes << ","
        << ub_l2_cuts << "," << ub_mt_cuts << "," << ub_p_cuts << ","
        << verify_node(s, instance) << endl;
 
