@@ -237,16 +237,19 @@ profit_t UB_MT(Node &n, const KPData &data) {
   return UB_mt;
 }
 
-profit_t UB_P(Node &n, const KPData &data) {
+// This is a custom implementation of UB_P
+// which is not exactly the same as the one proposed in the paper.
+profit_t _UB_P(Node &n, const KPData &data) {
   weight_t cV = data.W - n.w;
   if (cV < 0)
     return 0;
   // (0) Partition n.C into cliques using first fit and simultaneously
   // calculate the MCKP critical item
-  double bar_w = cV;
+  weight_t bar_w = cV;
   int bar_j = data.n;
   Partition cliques;
   vector<double> c_profits;
+  vector<weight_t> c_weights;
 
   n.C.init_scan(bbo::NON_DESTRUCTIVE);
   int i = n.C.next_bit();
@@ -258,12 +261,12 @@ profit_t UB_P(Node &n, const KPData &data) {
         C.set_bit(i);
         if (data.p[i] > c_profits[j]) {
           if (data.w[i] <= bar_w) {
-            bar_w = bar_w - (data.p[i] - c_profits[j]) *
-                                ((double)data.w[i] / data.p[i]);
+            bar_w -= (data.w[i] - c_weights[j]);
           } else {
             bar_j = min(bar_j, i);
           }
           c_profits[j] = data.p[i];
+          c_weights[j] = data.w[i];
         }
         found = true;
         break;
@@ -274,6 +277,7 @@ profit_t UB_P(Node &n, const KPData &data) {
       C_.set_bit(i);
       cliques.push_back(C_);
       c_profits.push_back(data.p[i]);
+      c_weights.push_back(data.w[i]);
     }
 
     i = n.C.next_bit();
@@ -307,6 +311,101 @@ profit_t UB_P(Node &n, const KPData &data) {
   return UB_p;
 }
 
+profit_t UB_P(Node &n, const KPData &data) {
+  weight_t cV = data.W - n.w;
+  if (cV < 0 || n.C.is_empty())
+    return 0;
+  // (0) Partition \hat{V} into cliques
+  Partition cliques;
+  bool should_stop = false;
+  bitarray v_hat(n.C);
+  while (!should_stop && !v_hat.is_empty()) {
+    bitarray C(data.n);
+    should_stop = true;
+    v_hat.init_scan(bbo::NON_DESTRUCTIVE);
+    int i = v_hat.next_bit();
+    while (i != EMPTY_ELEM) {
+      if (C.is_disjoint(data.NC[i])) {
+        should_stop = false;
+        v_hat.erase_bit(i);
+        C.set_bit(i);
+      }
+      i = v_hat.next_bit();
+    }
+    if (!C.is_empty())
+      cliques.push_back(C);
+  }
+
+  // (1) Attempt closed form solution
+  profit_t ub_p = 0;
+  weight_t ub_w = 0;
+  for (auto &C : cliques) {
+    profit_t c_p = 0;
+    profit_t c_w = 0;
+    C.init_scan(bbo::NON_DESTRUCTIVE);
+    int i = C.next_bit();
+    while (i != EMPTY_ELEM) {
+      if (c_p < data.p[i]) {
+        c_p = data.p[i];
+        c_w = data.w[i];
+      } else if (c_p == data.p[i] && data.w[i] < c_w) {
+        c_p = data.p[i];
+        c_w = data.w[i];
+      }
+      i = C.next_bit();
+    }
+    ub_p += c_p;
+    ub_w += c_w;
+  }
+  if (ub_w <= cV) {
+    return ub_p;
+  }
+
+  // (2) Calculate \hat{Beta}
+  vector<double> c_profits(cliques.size(), 0);
+  vector<weight_t> c_weights(cliques.size(), 0);
+  double bar_w = cV;
+  n.C.init_scan(bbo::NON_DESTRUCTIVE);
+  int j = n.C.next_bit();
+  while (j != EMPTY_ELEM) {
+    int c_j;
+    for (c_j = 0; c_j < cliques.size(); c_j++) {
+      if (cliques[c_j].is_bit(j))
+        break;
+    }
+    if (data.w[j] > bar_w) {
+      break;
+    }
+    if (data.p[j] > c_profits[c_j] && data.w[j] <= bar_w) {
+      bar_w -= (data.w[j] - c_weights[c_j]);
+      c_profits[c_j] = data.p[j];
+      c_weights[c_j] = data.w[j];
+    }
+
+    j = n.C.next_bit();
+  }
+  double bar_beta = (double)data.p[j] / data.w[j];
+
+  // (3) Calculate upper bound
+  for (int c = 0; c < cliques.size(); c++) {
+    cliques[c].init_scan(bbo::NON_DESTRUCTIVE);
+    int i = cliques[c].next_bit();
+    c_profits[c] = data.p[i] - bar_beta * data.w[i];
+    i = cliques[c].next_bit();
+    while (i != EMPTY_ELEM) {
+      c_profits[c] = max(c_profits[c], data.p[i] - bar_beta * data.w[i]);
+      i = cliques[c].next_bit();
+    }
+    c_profits[c] = max(c_profits[c], 0.0);
+  }
+  double UB_p = 0.0;
+  for (auto pi_c : c_profits)
+    UB_p += pi_c;
+  UB_p += bar_beta * cV;
+  // cout << j << " " <<  bar_beta << " " <<  UB_p << endl;
+  return floor(UB_p);
+}
+
 profit_t UB(Node &n, const KPData &data) {
   profit_t ub_l2 = UB_L2(n, data);
   profit_t ub_mt = UB_MT(n, data);
@@ -337,6 +436,7 @@ bool should_cut(Node &n, const KPData &data) {
 }
 
 Node branch_and_bound(const KPData &data, Node root) {
+  // cout << root.p << " " << root.I << data.n - root.C.popcn64() << endl;
   stack<Node> Q;
   Q.push(root);
   while (!Q.empty()) {
