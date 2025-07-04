@@ -43,6 +43,7 @@ uint64_t ub_l2_cuts = 0;
 uint64_t ub_mt_cuts = 0;
 uint64_t ub_p_cuts = 0;
 vector<vector<profit_t>> UB_L2_T;
+vector<vector<profit_t>> UB_L2_T2;
 
 Node add_item(const Node &n, int bit, const KPData &data) {
   Node new_node = n;
@@ -51,6 +52,62 @@ Node add_item(const Node &n, int bit, const KPData &data) {
   new_node.w += data.w[bit];
   new_node.C &= data.NC[bit];
   return new_node;
+}
+
+void generate_ubl2_table2(const KPData &data) {
+  auto n = data.n;
+  UB_L2_T2.resize(data.n);
+  Partition cliques;
+
+  // Partition cliques
+  int nv = 0;
+  vector<bool> free(n, true);
+  while (nv < n) {
+    bitarray C(n);
+    int bits = 0;
+    for (int i = n - 1 ; i >= 0; i--) {
+      if (!free[i])
+        continue;
+      if (C.is_disjoint(data.NC[i])) { // is_clique
+        C.set_bit(i);
+        free[i] = false;
+        bits++;
+      }
+    }
+    nv += bits;
+    cliques.push_back(C);
+  }
+
+  for (int j = 0; j < n; j++) {
+    bitarray mask(n);
+    mask.set_bit();
+    if (j > 0)
+      mask.erase_bit(0, j - 1);
+    vector<int> prev(data.W + 1, 0);
+    vector<int> curr(data.W + 1, 0);
+
+    for (int l = 0; l < cliques.size(); l++) {
+      bitarray C_(cliques[l]);
+      C_ &= mask;
+      if (C_.is_empty())
+        continue;
+      for (int s = 0; s <= data.W; s++) {
+        int max_c = prev[s];
+        C_.init_scan(bbo::NON_DESTRUCTIVE);
+        auto i = C_.next_bit();
+        while (i != EMPTY_ELEM) {
+          const int wi = data.w[i];
+          if (wi <= s)
+            max_c = max(max_c, prev[s - wi] + data.p[i]);
+
+          i = C_.next_bit();
+        }
+        curr[s] = max_c;
+      }
+      prev.swap(curr);
+    }
+    UB_L2_T2[j] = prev;
+  }
 }
 
 void generate_ubl2_table(const KPData &data) {
@@ -165,7 +222,7 @@ profit_t UB_L2(Node &n, const KPData &data) {
   if (j == EMPTY_ELEM || cV < 0) {
     return 0;
   }
-  return UB_L2_T[j][cV];
+  return min(UB_L2_T[j][cV], UB_L2_T2[j][cV]);
 }
 
 profit_t UB_MT(Node &n, const KPData &data) {
@@ -195,6 +252,10 @@ profit_t UB_MT(Node &n, const KPData &data) {
         ub_mt_base + floor(data.p[t] - ((data.w[t] - cVb) *
                                         ((double)data.p[tm1] / data.w[tm1])));
     UB_mt = max(ub_0, ub_1);
+  } else {
+    weight_t cVb = cV - w;
+    profit_t ub_mt = ub_mt_base + floor(cVb * ((double)data.p[t]/data.w[t]));
+    UB_mt = ub_mt;
   }
   return UB_mt;
 }
@@ -404,18 +465,20 @@ Node branch_and_bound(const KPData &data, Node root) {
   while (!Q.empty()) {
     auto n = Q.top();
     Q.pop();
-    nodes++;
-    bitarray B = partition(n, data);
-    B.init_scan(bbo::NON_DESTRUCTIVE_REVERSE);
-    auto bit = B.previous_bit();
-    while (bit != EMPTY_ELEM) {
-      auto nl = add_item(n, bit, data);
-      if (nl.p > I_inc.p) {
-        I_inc = nl;
+    if (!should_cut(n, data)) {
+      nodes++;
+      bitarray B = partition(n, data);
+      B.init_scan(bbo::NON_DESTRUCTIVE_REVERSE);
+      auto bit = B.previous_bit();
+      while (bit != EMPTY_ELEM) {
+        auto nl = add_item(n, bit, data);
+        if (nl.p > I_inc.p) {
+          I_inc = nl;
+        }
+        if (nl.C.popcn64())
+          Q.push(nl);
+        bit = B.previous_bit();
       }
-      if (nl.C.popcn64() && !should_cut(nl, data))
-        Q.push(nl);
-      bit = B.previous_bit();
     }
   }
 
@@ -571,6 +634,7 @@ int main(int argc, char **argv) {
 
   // (2) Bounds table generation
   generate_ubl2_table(instance);
+  generate_ubl2_table2(instance);
 
   // (3) Preprocessing
   Node root = {bitarray(data.n), 0, 0, bitarray(data.n)};
